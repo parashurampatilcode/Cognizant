@@ -42,13 +42,13 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   }
 }));
 
-const DashboardTable = React.forwardRef((props, ref) => {
+const DashboardTable = React.forwardRef(({ filters }, ref) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
 
-  const loadData = async () => {
+  const loadData = async (currentFilters = filters) => {
     try {
-      const data = await getDashboardSummary();
+      const data = await getDashboardSummary(currentFilters);
       if (data && data.length > 0) {
         const cols = Object.keys(data[0]).map((key, index) => ({
           field: key,
@@ -121,6 +121,7 @@ const DashboardTable = React.forwardRef((props, ref) => {
 });
 
 export default DashboardTable;
+
 
 
 

@@ -1,9 +1,14 @@
-import React, { useRef, useEffect } from "react";
-import { Typography } from "@mui/material";
+import React, { useRef, useEffect, useState } from "react";
+import { Typography, Box } from "@mui/material";
 import DashboardTable from "../components/DashboardTable";
+import FilterControls from "../components/FilterControls";
 
 function Dashboard() {
   const tableRef = useRef(null);
+  const [filters, setFilters] = useState({
+    viewType: 'Practice',
+    location: 'All'
+  });
 
   useEffect(() => {
     const refreshData = () => {
@@ -18,13 +23,21 @@ function Dashboard() {
     };
   }, []);
 
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+    if (tableRef.current) {
+      tableRef.current.refresh(newFilters);
+    }
+  };
+
   return (
-    <>
+    <Box sx={{ width: '100%' }}>
       <Typography variant="h4" gutterBottom>
         Dashboard
       </Typography>
-      <DashboardTable ref={tableRef} />
-    </>
+      <FilterControls onFilterChange={handleFilterChange} />
+      <DashboardTable ref={tableRef} filters={filters} />
+    </Box>
   );
 }
 
