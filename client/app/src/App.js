@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   Typography,
   Container,
@@ -7,6 +7,8 @@ import {
   MenuItem,
   Button,
   Grid,
+  Fade,
+  useTheme,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CognizantLogo from "./cognizant-logo.svg";
@@ -21,32 +23,133 @@ import ExcelImport from "./components/ExcelImport";
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
+const StyledButton = styled(Button)(({ theme }) => ({
+  transition: theme.transitions.create(["transform", "box-shadow"], {
+    duration: theme.transitions.duration.short,
+  }),
+  "&:hover": {
+    transform: "translateY(-2px)",
+    boxShadow: theme.shadows[4],
+  },
+}));
+
+const StyledMenuItem = styled(MenuItem)(({ theme }) => ({
+  transition: theme.transitions.create(["background-color", "color"], {
+    duration: theme.transitions.duration.shorter,
+  }),
+  "&:hover": {
+    backgroundColor: theme.palette.primary.light,
+    color: theme.palette.primary.contrastText,
+  },
+}));
+
+const MenuButton = ({ buttonText, isActive, onClick }) => (
+  <StyledButton
+    color={isActive ? "primary" : "inherit"}
+    variant="contained"
+    onClick={onClick}
+  >
+    {buttonText}
+  </StyledButton>
+);
+
+const MenuWrapper = ({
+  buttonText,
+  isActive,
+  menuKey,
+  anchorEl,
+  activeMenu,
+  onMenuOpen,
+  onMenuClose,
+  children,
+}) => {
+  const theme = useTheme();
+  const menuRef = useRef(null);
+
+  const handleMouseEnter = (event) => {
+    onMenuOpen(event.currentTarget, menuKey);
+  };
+
+  const handleMouseLeave = () => {
+    onMenuClose();
+  };
+
+  const handleMenuMouseEnter = (event) => {
+    event.stopPropagation();
+  };
+
+  const handleMenuMouseLeave = () => {
+    onMenuClose();
+  };
+
+  return (
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      ref={menuRef}
+    >
+      <MenuButton buttonText={buttonText} isActive={isActive} />
+      <Menu
+        anchorEl={anchorEl}
+        open={activeMenu === menuKey}
+        onClose={onMenuClose}
+        MenuListProps={{
+          onMouseEnter: handleMenuMouseEnter,
+          onMouseLeave: handleMenuMouseLeave,
+        }}
+        TransitionComponent={Fade}
+        TransitionProps={{ timeout: theme.transitions.duration.shortest }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        PaperProps={{
+          sx: {
+            mt: 0.5,
+            boxShadow: theme.shadows[6],
+            minWidth: 180,
+          },
+        }}
+      >
+        {children}
+      </Menu>
+    </div>
+  );
+};
+
 function App() {
-  const [anchorElDemand, setAnchorElDemand] = useState(null);
-  const [anchorElSupply, setAnchorElSupply] = useState(null);
-  const [activePage, setActivePage] = useState("dashboard"); // Default page
-  const [showSubMenu, setShowSubMenu] = useState(null); // State to track which submenu to show
-  const [anchorElExcel, setAnchorElExcel] = useState(null);
+  const [activePage, setActivePage] = useState("dashboard");
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuTimeoutRef = useRef(null);
+  const theme = useTheme();
 
-  const handleMenuClick = (event, menu) => {
-    event.preventDefault();
-    if (menu === "demand") setAnchorElDemand(event.currentTarget);
-    if (menu === "supply") setAnchorElSupply(event.currentTarget);
-    if (menu === "excel") setAnchorElExcel(event.currentTarget);
-    setShowSubMenu(menu);
-  };
+  const handleMenuOpen = useCallback(
+    (element, menuKey) => {
+      // Always clear the timeout when opening a new menu
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+      menuTimeoutRef.current = null; // Reset the timeout ref
 
-  const handleMenuClose = (menu) => {
-    if (menu === "demand") setAnchorElDemand(null);
-    if (menu === "supply") setAnchorElSupply(null);
-    if (menu === "excel") setAnchorElExcel(null);
-    setShowSubMenu(null); // Hide submenu on close
-  };
+      if (activeMenu !== menuKey) {
+        setActiveMenu(menuKey);
+        setAnchorEl(element);
+      }
+    },
+    [] // Removed activeMenu from dependencies
+  );
 
-  const handlePageChange = (page) => {
+  const handleMenuClose = useCallback(() => {
+    menuTimeoutRef.current = setTimeout(() => {
+      setActiveMenu(null);
+      setAnchorEl(null);
+    }, 150);
+  }, []);
+
+  const handlePageChange = useCallback((page) => {
     setActivePage(page);
-    setShowSubMenu(null); // Hide submenu when changing pages
-  };
+    setActiveMenu(null);
+    setAnchorEl(null);
+  }, []);
 
   const renderPage = () => {
     switch (activePage) {
@@ -57,7 +160,11 @@ function App() {
       case "detailedView":
         return <DemandView />;
       case "pdp":
-        return <SupplyView />;
+      case "vcdp":
+      case "lateralHiring":
+      case "rotation":
+      case "nbl":
+        return <SupplyView type={activePage} />;
       case "matching":
         return <DemandSupplyMatching />;
       case "admin":
@@ -71,10 +178,22 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <header
-        style={{ backgroundColor: "#1976d2", color: "white", padding: "0px" }}
+        style={{
+          backgroundColor: theme.palette.primary.main,
+          color: "white",
+          padding: "0px",
+        }}
       >
         <Grid container direction="column">
           <Grid
@@ -113,104 +232,101 @@ function App() {
           justifyContent: "flex-start",
           gap: 1,
           marginTop: -7,
+          padding: "0 16px",
         }}
       >
-        <Button
-          color={activePage === "dashboard" ? "primary" : "inherit"}
+        <MenuButton
+          buttonText="Dashboard"
+          isActive={activePage === "dashboard"}
           onClick={() => handlePageChange("dashboard")}
-          variant="contained"
+        />
+
+        <MenuWrapper
+          buttonText="Demand View"
+          isActive={activePage === "detailedView"}
+          menuKey="demand"
+          anchorEl={anchorEl}
+          activeMenu={activeMenu}
+          onMenuOpen={handleMenuOpen}
+          onMenuClose={handleMenuClose}
         >
-          Dashboard
-        </Button>
-        <Button
-          color={activePage === "detailedView" ? "primary" : "inherit"}
-          onClick={(event) => handleMenuClick(event, "demand")}
-          variant="contained"
+          <StyledMenuItem onClick={() => handlePageChange("detailedView")}>
+            Detailed View
+          </StyledMenuItem>
+        </MenuWrapper>
+
+        <MenuWrapper
+          buttonText="Supply View"
+          isActive={[
+            "pdp",
+            "vcdp",
+            "lateralHiring",
+            "rotation",
+            "nbl",
+          ].includes(activePage)}
+          menuKey="supply"
+          anchorEl={anchorEl}
+          activeMenu={activeMenu}
+          onMenuOpen={handleMenuOpen}
+          onMenuClose={handleMenuClose}
         >
-          Demand View
-        </Button>
-        <Button
-          color={activePage === "pdp" ? "primary" : "inherit"}
-          onClick={(event) => handleMenuClick(event, "supply")}
-          variant="contained"
+          {[
+            { label: "PDP", value: "pdp" },
+            { label: "VCDP", value: "vcdp" },
+            { label: "Lateral Hiring", value: "lateralHiring" },
+            { label: "Rotation", value: "rotation" },
+            { label: "NBL", value: "nbl" },
+          ].map((item) => (
+            <StyledMenuItem
+              key={item.value}
+              onClick={() => handlePageChange(item.value)}
+            >
+              {item.label}
+            </StyledMenuItem>
+          ))}
+        </MenuWrapper>
+
+        <MenuWrapper
+          buttonText="Excel Import"
+          isActive={activePage === "excelImport"}
+          menuKey="excel"
+          anchorEl={anchorEl}
+          activeMenu={activeMenu}
+          onMenuOpen={handleMenuOpen}
+          onMenuClose={handleMenuClose}
         >
-          Supply View
-        </Button>
-        <Button
-          color={activePage === "excelImport" ? "primary" : "inherit"}
-          onClick={(event) => handleMenuClick(event, "excel")}
-          variant="contained"
-        >
-          Excel Import
-        </Button>
-        <Button
-          color={activePage === "matching" ? "primary" : "inherit"}
+          <StyledMenuItem onClick={() => handlePageChange("excelImport")}>
+            Import Data
+          </StyledMenuItem>
+        </MenuWrapper>
+
+        <MenuButton
+          buttonText="Demand Supply Matching"
+          isActive={activePage === "matching"}
           onClick={() => handlePageChange("matching")}
-          variant="contained"
-        >
-          Demand Supply Matching
-        </Button>
-        <Button
-          color={activePage === "admin" ? "primary" : "inherit"}
+        />
+
+        <MenuButton
+          buttonText="Admin"
+          isActive={activePage === "admin"}
           onClick={() => handlePageChange("admin")}
-          variant="contained"
-        >
-          Admin
-        </Button>
-        <Button
-          color={activePage === "reports" ? "primary" : "inherit"}
+        />
+
+        <MenuButton
+          buttonText="Reports"
+          isActive={activePage === "reports"}
           onClick={() => handlePageChange("reports")}
-          variant="contained"
-        >
-          Reports
-        </Button>
-        <Button
-          color={activePage === "maintenance" ? "primary" : "inherit"}
+        />
+
+        <MenuButton
+          buttonText="Maintenance"
+          isActive={activePage === "maintenance"}
           onClick={() => handlePageChange("maintenance")}
-          variant="contained"
-        >
-          Maintenance
-        </Button>
+        />
       </Box>
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         {renderPage()}
       </Container>
-
-      <Menu
-        anchorEl={anchorElDemand}
-        open={showSubMenu === "demand"}
-        onClose={() => handleMenuClose("demand")}
-      >
-        <MenuItem onClick={() => handlePageChange("detailedView")}>
-          Detailed View
-        </MenuItem>
-      </Menu>
-
-      <Menu
-        anchorEl={anchorElSupply}
-        open={showSubMenu === "supply"}
-        onClose={() => handleMenuClose("supply")}
-      >
-        <MenuItem onClick={() => handlePageChange("pdp")}>PDP</MenuItem>
-        <MenuItem onClick={() => handlePageChange("vcdp")}>VCDP</MenuItem>
-        <MenuItem onClick={() => handlePageChange("lateralHiring")}>
-          Lateral Hiring
-        </MenuItem>
-        <MenuItem onClick={() => handlePageChange("rotation")}>
-          Rotation
-        </MenuItem>
-        <MenuItem onClick={() => handlePageChange("nbl")}>NBL</MenuItem>
-      </Menu>
-
-      <Menu
-        anchorEl={anchorElExcel}
-        open={showSubMenu === "excel"}
-        onClose={() => handleMenuClose("excel")}
-      >
-        <MenuItem onClick={() => handlePageChange("excelImport")}>
-          Import Data
-        </MenuItem>
-      </Menu>
     </Box>
   );
 }
