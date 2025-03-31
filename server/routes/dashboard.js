@@ -1,14 +1,18 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const pool = require('../config/db');
+const pool = require("../config/db");
 
-router.get('/summary', async (req, res) => {
+router.get("/summary", async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM getDemandSupplySummaryView()');
+    //const result = await pool.query('SELECT * FROM getDemandSupplySummaryView()');
+    const result = await pool.query(
+      "SELECT * FROM getdemandsupplysummaryviewv1()"
+    );
+
     res.json(result.rows);
   } catch (error) {
-    console.error('Error executing query:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
