@@ -8,6 +8,7 @@ import {
   FormControlLabel,
   FormControl,
   FormLabel,
+  Alert,
 } from "@mui/material";
 import UploadComponent from "./UploadComponent";
 import DataTable from "./DataTable";
@@ -17,21 +18,35 @@ function ExcelImport() {
   const [uploadedData, setUploadedData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
   const handleTypeChange = (event) => {
     setSelectedType(event.target.value);
+    setUploadedData(null); // Clear data when changing type
+    setError(null);
+    setSuccessMessage(null);
   };
 
   const handleUpload = async (file) => {
-    if (selectedType === "PDP" || selectedType === "VCDP") {
+    if (
+      selectedType === "PDP" ||
+      selectedType === "VCDP" ||
+      selectedType === "Demand"
+    ) {
       setLoading(true);
       setError(null);
+      setSuccessMessage(null);
       try {
         const formData = new FormData();
         formData.append("file", file);
 
-        const endpoint = selectedType === "PDP" ? "pdp" : "vcdp";
-        await axios.post(
+        const endpoint =
+          selectedType === "PDP"
+            ? "pdp"
+            : selectedType === "VCDP"
+            ? "vcdp"
+            : "demand";
+        const response = await axios.post(
           `http://localhost:5000/${endpoint}/uploadAndProcess`,
           formData,
           {
@@ -41,15 +56,21 @@ function ExcelImport() {
           }
         );
 
+        // Display success message from the server
+        if (response.data.message) {
+          setSuccessMessage(response.data.message);
+        }
         // Fetch the updated data after upload
-        const response = await axios.get(`http://localhost:5000/${endpoint}`);
-        const data = response.data;
+        const dataResponse = await axios.get(
+          `http://localhost:5000/${endpoint}`
+        );
+        const data = dataResponse.data;
 
         if (data.length > 0) {
           const keys = Object.keys(data[0]);
           const columns = keys.map((key) => ({
             field: key,
-            headerName: key,
+            headerName: key.replace(/([A-Z])/g, " $1").trim(), // Add space before capital letters for better readability
             width: 150,
           }));
 
@@ -57,167 +78,34 @@ function ExcelImport() {
             columns,
             rows: data,
           });
+        } else {
+          setUploadedData({
+            columns: [],
+            rows: [],
+          });
+          setSuccessMessage("File processed successfully, but no data found.");
         }
       } catch (error) {
         console.error("Error uploading file:", error);
         setError(
           "Error uploading file. Please check the file format and try again."
         );
+        if (
+          error.response &&
+          error.response.data &&
+          error.response.data.details
+        ) {
+          setError(error.response.data.details);
+        }
       } finally {
         setLoading(false);
       }
     } else {
       // TODO: Handle other file types
-      const mockData = {
-        columns: [
-          { field: "id", headerName: "ID", width: 70 },
-          { field: "name", headerName: "Name", width: 150 },
-          { field: "value", headerName: "Value", width: 100 },
-          { field: "status", headerName: "Status", width: 110 },
-          {
-            field: "dateCreated",
-            headerName: "Date Created",
-            width: 160,
-            type: "date",
-          },
-          {
-            field: "quantity",
-            headerName: "Quantity",
-            type: "number",
-            width: 110,
-          },
-          { field: "category", headerName: "Category", width: 130 },
-          { field: "email", headerName: "Email", width: 200 },
-          { field: "city", headerName: "City", width: 140 },
-          { field: "score", headerName: "Score", type: "number", width: 100 },
-        ],
-        rows: [
-          {
-            id: 1,
-            name: "User One",
-            value: "Value 1",
-            status: "Active",
-            dateCreated: new Date(2025, 2, 11),
-            quantity: 75,
-            category: "Alpha",
-            email: "user.one@example.com",
-            city: "Metropolis",
-            score: 88,
-          },
-          {
-            id: 2,
-            name: "User Two",
-            value: "Value 2",
-            status: "Inactive",
-            dateCreated: new Date(2025, 2, 12),
-            quantity: 120,
-            category: "Beta",
-            email: "user.two@example.com",
-            city: "Gotham",
-            score: 45,
-          },
-          {
-            id: 3,
-            name: "User Three",
-            value: "Value 3",
-            status: "Active",
-            dateCreated: new Date(2025, 2, 13),
-            quantity: 30,
-            category: "Alpha",
-            email: "user.three@example.com",
-            city: "Star City",
-            score: 92,
-          },
-          {
-            id: 4,
-            name: "User Four",
-            value: "Value 4",
-            status: "Active",
-            dateCreated: new Date(2025, 2, 14),
-            quantity: 500,
-            category: "Gamma",
-            email: "user.four@example.com",
-            city: "Central City",
-            score: 76,
-          },
-          {
-            id: 5,
-            name: "User Five",
-            value: "Value 5",
-            status: "Pending",
-            dateCreated: new Date(2025, 2, 15),
-            quantity: 22,
-            category: "Beta",
-            email: "user.five@example.com",
-            city: "Metropolis",
-            score: 60,
-          },
-          {
-            id: 6,
-            name: "User Six",
-            value: "Value 6",
-            status: "Inactive",
-            dateCreated: new Date(2025, 2, 16),
-            quantity: 850,
-            category: "Gamma",
-            email: "user.six@example.com",
-            city: "Gotham",
-            score: 33,
-          },
-          {
-            id: 7,
-            name: "User Seven",
-            value: "Value 7",
-            status: "Active",
-            dateCreated: new Date(2025, 2, 17),
-            quantity: 15,
-            category: "Alpha",
-            email: "user.seven@example.com",
-            city: "Star City",
-            score: 95,
-          },
-          {
-            id: 8,
-            name: "User Eight",
-            value: "Value 8",
-            status: "Active",
-            dateCreated: new Date(2025, 2, 18),
-            quantity: 199,
-            category: "Beta",
-            email: "user.eight@example.com",
-            city: "Central City",
-            score: 81,
-          },
-          {
-            id: 9,
-            name: "User Nine",
-            value: "Value 9",
-            status: "Pending",
-            dateCreated: new Date(2025, 2, 19),
-            quantity: 345,
-            category: "Gamma",
-            email: "user.nine@example.com",
-            city: "Metropolis",
-            score: 55,
-          },
-          {
-            id: 10,
-            name: "User Ten",
-            value: "Value 10",
-            status: "Active",
-            dateCreated: new Date(2025, 2, 20),
-            quantity: 67,
-            category: "Alpha",
-            email: "user.ten@example.com",
-            city: "Gotham",
-            score: 79,
-          },
-        ],
-      };
-
-      // You can optionally log it to see the structure
-      // console.log(JSON.stringify(mockData, null, 2));
-      setUploadedData(mockData);
+      // Removed the mock data section as it's not relevant to the problem
+      // and was causing confusion.
+      setUploadedData(null);
+      setError("This file type is not yet supported.");
     }
   };
 
@@ -248,17 +136,28 @@ function ExcelImport() {
       </FormControl>
 
       {error && (
-        <Typography color="error" sx={{ marginBottom: 2 }}>
+        <Alert severity="error" sx={{ marginBottom: 2 }}>
           {error}
-        </Typography>
+        </Alert>
+      )}
+
+      {successMessage && (
+        <Alert severity="success" sx={{ marginBottom: 2 }}>
+          {successMessage}
+        </Alert>
       )}
 
       <UploadComponent onUpload={handleUpload} disabled={loading} />
 
-      {uploadedData && (
+      {uploadedData && uploadedData.rows.length > 0 && (
         <Box sx={{ height: 400, width: "100%" }}>
           <DataTable rows={uploadedData.rows} columns={uploadedData.columns} />
         </Box>
+      )}
+      {uploadedData && uploadedData.rows.length === 0 && (
+        <Alert severity="info" sx={{ marginBottom: 2 }}>
+          No data to display.
+        </Alert>
       )}
     </Box>
   );
