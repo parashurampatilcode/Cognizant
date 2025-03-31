@@ -1,3 +1,4 @@
+// c:\Users\Parashuram\Projects\ei-demand-supply-tool\client\app\src\components\ExcelImport.js
 import React, { useState } from "react";
 import axios from "axios";
 import {
@@ -31,7 +32,8 @@ function ExcelImport() {
     if (
       selectedType === "PDP" ||
       selectedType === "VCDP" ||
-      selectedType === "Demand"
+      selectedType === "Demand" ||
+      selectedType === "Lateral Hiring"
     ) {
       setLoading(true);
       setError(null);
@@ -45,7 +47,10 @@ function ExcelImport() {
             ? "pdp"
             : selectedType === "VCDP"
             ? "vcdp"
-            : "demand";
+            : selectedType === "Demand"
+            ? "demand"
+            : "lateralHiring"; // New endpoint
+
         const response = await axios.post(
           `http://localhost:5000/${endpoint}/uploadAndProcess`,
           formData,
@@ -102,8 +107,6 @@ function ExcelImport() {
       }
     } else {
       // TODO: Handle other file types
-      // Removed the mock data section as it's not relevant to the problem
-      // and was causing confusion.
       setUploadedData(null);
       setError("This file type is not yet supported.");
     }

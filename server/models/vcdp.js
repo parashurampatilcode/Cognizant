@@ -214,10 +214,6 @@ const VCDP = {
         RETURNING *
       `;
 
-      console.log("Number of rows to insert:", dataArray.length);
-      //console.log("Query:", query);
-      console.log("Values length:", flatValues.length);
-
       const { rows } = await pool.query(query, flatValues);
       return Array.isArray(vcdpDataArray) ? rows : rows[0];
     } catch (error) {

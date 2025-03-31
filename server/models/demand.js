@@ -2,10 +2,14 @@ const pool = require("../config/db");
 
 const Demand = {
   getAll: async () => {
-    //const query = 'SELECT * FROM "so_data_1" WHERE is_active = true';
-    const query = 'SELECT * FROM "so_data_1"';
-    const { rows } = await pool.query(query);
-    return rows;
+    try {
+      const query = 'SELECT * FROM "so_data_1"';
+      const { rows } = await pool.query(query);
+      return rows;
+    } catch (error) {
+      console.error("Error in getAll:", error);
+      throw error;
+    }
   },
 
   create: async (demandDataArray) => {
@@ -317,13 +321,11 @@ const Demand = {
         RETURNING *
       `;
 
-      console.log("Number of rows to insert:", dataArray.length);
-      console.log("Values length:", flatValues.length);
-
       const { rows } = await pool.query(query, flatValues);
       return Array.isArray(demandDataArray) ? rows : rows[0];
     } catch (error) {
       console.error("Error creating Demand record(s):", error);
+      console.error("Error details:", error); // Added this line
       throw error;
     }
   },

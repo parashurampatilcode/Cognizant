@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const pdpRoutes = require("./routes/pdp");
 const vcdpRoutes = require("./routes/vcdp");
 const demandRoutes = require("./routes/demand");
+const lateralHiringRouter = require("./routes/lateralHiring");
 require("dotenv").config();
 
 const app = express();
@@ -20,8 +21,10 @@ app.use(express.json());
 app.use("/pdp", pdpRoutes);
 app.use("/vcdp", vcdpRoutes);
 app.use("/demand", demandRoutes);
-const dashboardRoutes = require('./routes/dashboard');
-app.use('/dashboard', dashboardRoutes);
+app.use("/lateralHiring", lateralHiringRouter);
+
+const dashboardRoutes = require("./routes/dashboard");
+app.use("/dashboard", dashboardRoutes);
 
 // Start the server
 app.listen(port, () => {
