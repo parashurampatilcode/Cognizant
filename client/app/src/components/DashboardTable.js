@@ -29,6 +29,17 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     color: "red",
     fontWeight: "bold",
   },
+  "& .MuiDataGrid-root": {
+    overflowX: "auto",
+  },
+  "& .MuiDataGrid-cell": {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  "& .MuiDataGrid-columnHeaders": {
+    whiteSpace: "nowrap",
+  }
 }));
 
 const DashboardTable = React.forwardRef((props, ref) => {
@@ -43,6 +54,7 @@ const DashboardTable = React.forwardRef((props, ref) => {
           field: key,
           headerName:
             key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
+          minWidth: 150,
           flex: 1,
           cellClassName: (params) => {
             const isLastRow = params.row.id === data.length;
@@ -84,7 +96,7 @@ const DashboardTable = React.forwardRef((props, ref) => {
   }));
 
   return (
-    <div style={{ height: 600, width: "100%" }}>
+    <div style={{ height: 600, width: "100%", overflow: "auto" }}>
       <StyledDataGrid
         rows={rows}
         columns={columns}
@@ -94,9 +106,21 @@ const DashboardTable = React.forwardRef((props, ref) => {
         disableSelectionOnClick
         pagination={false}
         hideFooterPagination
+        autoWidth
+        sx={{
+          '& .MuiDataGrid-main': {
+            overflow: 'auto',
+          },
+          '& .MuiDataGrid-virtualScroller': {
+            overflow: 'auto !important',
+          }
+        }}
       />
     </div>
   );
 });
 
 export default DashboardTable;
+
+
+
