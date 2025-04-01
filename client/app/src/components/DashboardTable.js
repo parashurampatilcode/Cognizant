@@ -8,8 +8,14 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Button,
 } from "@mui/material";
-import { FileDownload, Image, ContentCopy } from "@mui/icons-material";
+import {
+  FileDownload,
+  Image,
+  ContentCopy,
+  Close as CloseIcon,
+} from "@mui/icons-material";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 
@@ -68,7 +74,7 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
   const [popupData, setPopupData] = useState({ rows: [], columns: [] });
   const [popupTitle, setPopupTitle] = useState("");
   const tableRef = useRef(null);
-  const lastColumnHeaderRef = useRef(null);
+  const popupTableRef = useRef(null);
 
   const handleExportExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -100,19 +106,8 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
         });
         return rowData;
       });
-
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-        alert("Data copied to clipboard!");
-      } else {
-        const textArea = document.createElement("textarea");
-        textArea.value = JSON.stringify(data, null, 2);
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textArea);
-        alert("Data copied to clipboard!");
-      }
+      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+      alert("Data copied to clipboard!");
     } catch (err) {
       console.error("Error copying data:", err);
     }
@@ -145,29 +140,13 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
 
             return `${isLastRow ? "last-row" : ""} ${
               isFirstColumn ? "first-column" : ""
-            } 
-                    ${isLastColumn ? "last-column" : ""} ${
+            } ${isLastColumn ? "last-column" : ""} ${
               isNegative ? "negative-value" : ""
             }`.trim();
           },
-          headerClassName: (params) => {
-            // Add a ref to the last column header
-            if (
-              params.colDef.field ===
-              Object.keys(data[0])[Object.keys(data[0]).length - 1]
-            ) {
-              return "last-column-header";
-            }
-            return "";
-          },
         }));
         setColumns(cols);
-
-        const rowsWithId = data.map((row, index) => ({
-          ...row,
-          id: index,
-        }));
-        setRows(rowsWithId);
+        setRows(data.map((row, index) => ({ ...row, id: index + 1 })));
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -177,18 +156,22 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
   const handleCellClick = async (params) => {
     if (params.field === columns[0].field) {
       setPopupTitle(params.value);
-      const response = await fetch("http://localhost:5000/dashboard/summary");
-      const data = await response.json();
-      const cols = Object.keys(data[0]).map((key) => ({
-        field: key,
-        headerName: key.replace(/_/g, " ").toUpperCase(),
-        flex: 1,
-      }));
-      setPopupData({
-        rows: data.map((row, index) => ({ ...row, id: index })),
-        columns: cols,
-      });
-      setOpenPopup(true);
+      try {
+        const response = await fetch("http://localhost:5000/dashboard/summary");
+        const data = await response.json();
+        const cols = Object.keys(data[0]).map((key) => ({
+          field: key,
+          headerName: key.replace(/_/g, " ").toUpperCase(),
+          flex: 1,
+        }));
+        setPopupData({
+          rows: data.map((row, index) => ({ ...row, id: index + 1 })),
+          columns: cols,
+        });
+        setOpenPopup(true);
+      } catch (error) {
+        console.error("Error fetching popup data:", error);
+      }
     }
   };
 
@@ -200,33 +183,34 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
   };
 
   const handleExportPopupImage = async () => {
-    const element = document.getElementById("popup-table");
-    const dataUrl = await htmlToImage.toPng(element);
-    const link = document.createElement("a");
-    link.download = "popup_table.png";
-    link.href = dataUrl;
-    link.click();
+    if (popupTableRef.current) {
+      try {
+        const dataUrl = await htmlToImage.toPng(popupTableRef.current);
+        const link = document.createElement("a");
+        link.download = "popup_table.png";
+        link.href = dataUrl;
+        link.click();
+      } catch (error) {
+        console.error("Error exporting popup image:", error);
+      }
+    }
   };
 
-  const handleCopyPopupData = () => {
-    const text = JSON.stringify(popupData.rows, null, 2);
-    navigator.clipboard.writeText(text);
-    alert("Data copied to clipboard!");
+  const handleCopyPopupData = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        JSON.stringify(popupData.rows, null, 2)
+      );
+      alert("Popup data copied to clipboard!");
+    } catch (error) {
+      console.error("Error copying popup data:", error);
+    }
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [filters]);
 
-  useEffect(() => {
-    // After columns are set, find the last column header and set the ref
-    const lastColumnHeader = document.querySelector(".last-column-header");
-    if (lastColumnHeader) {
-      lastColumnHeaderRef.current = lastColumnHeader;
-    }
-  }, [columns]);
-
-  // Expose the loadData method to parent components
   React.useImperativeHandle(ref, () => ({
     refresh: loadData,
   }));
@@ -236,42 +220,37 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
       <Box
         sx={{
           position: "absolute",
-          top: -40, // Adjust as needed to position above the header
+          top: -40,
           right: 0,
           zIndex: 1,
           display: "flex",
           gap: 1,
           padding: 1,
-          // Add a style to align with the last column
-          "&.MuiBox-root": {
-            right: lastColumnHeaderRef.current
-              ? `calc(100% - ${lastColumnHeaderRef.current.offsetLeft}px)`
-              : 0,
-          },
         }}
       >
         <IconButton
-          aria-label="export to excel"
           onClick={handleExportExcel}
+          title="Export Excel"
           sx={{ color: "#008080" }}
         >
           <FileDownload />
         </IconButton>
         <IconButton
-          aria-label="export to image"
           onClick={handleExportImage}
+          title="Export Image"
           sx={{ color: "#008080" }}
         >
           <Image />
         </IconButton>
         <IconButton
-          aria-label="copy data"
           onClick={handleCopyData}
+          title="Copy Data"
           sx={{ color: "#008080" }}
         >
           <ContentCopy />
         </IconButton>
       </Box>
+
       <div
         ref={tableRef}
         style={{ height: 600, width: "100%", overflow: "auto" }}
@@ -287,12 +266,8 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
           hideFooterPagination
           autoWidth
           sx={{
-            "& .MuiDataGrid-main": {
-              overflow: "auto",
-            },
-            "& .MuiDataGrid-virtualScroller": {
-              overflow: "auto !important",
-            },
+            "& .MuiDataGrid-main": { overflow: "auto" },
+            "& .MuiDataGrid-virtualScroller": { overflow: "auto !important" },
           }}
           onCellClick={handleCellClick}
         />
@@ -304,26 +279,78 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle>{popupTitle}</DialogTitle>
+        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
+          {popupTitle}
+          <IconButton
+            onClick={() => setOpenPopup(false)}
+            sx={{ marginLeft: "auto" }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
-          <Box id="popup-table" style={{ height: 400, width: "100%" }}>
-            <DataGrid
-              rows={popupData.rows}
-              columns={popupData.columns}
-              autoHeight
-              pageSize={10}
-            />
+          <Box sx={{ position: "relative", paddingTop: 5 }}>
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                right: 0,
+                zIndex: 1,
+                display: "flex",
+                gap: 1,
+                padding: 1,
+              }}
+            >
+              <IconButton
+                onClick={handleExportPopupExcel}
+                title="Export Excel"
+                sx={{ color: "#008080" }}
+              >
+                <FileDownload />
+              </IconButton>
+              <IconButton
+                onClick={handleExportPopupImage}
+                title="Export Image"
+                sx={{ color: "#008080" }}
+              >
+                <Image />
+              </IconButton>
+              <IconButton
+                onClick={handleCopyPopupData}
+                title="Copy Data"
+                sx={{ color: "#008080" }}
+              >
+                <ContentCopy />
+              </IconButton>
+            </Box>
+
+            <Box
+              ref={popupTableRef}
+              id="popup-table"
+              style={{ height: 400, width: "100%", overflow: "auto" }}
+            >
+              <StyledDataGrid
+                rows={popupData.rows}
+                columns={popupData.columns}
+                autoHeight
+                pageSize={10}
+                rowsPerPageOptions={[10, 25, 50]}
+                disableSelectionOnClick
+                pagination={false}
+                hideFooterPagination
+                sx={{
+                  "& .MuiDataGrid-main": { overflow: "auto" },
+                  "& .MuiDataGrid-virtualScroller": {
+                    overflow: "auto !important",
+                  },
+                }}
+              />
+            </Box>
           </Box>
-          <Box display="flex" justifyContent="flex-end" mt={2} gap={2}>
-            <IconButton onClick={handleExportPopupExcel} title="Export Excel">
-              <FileDownload />
-            </IconButton>
-            <IconButton onClick={handleExportPopupImage} title="Export Image">
-              <Image />
-            </IconButton>
-            <IconButton onClick={handleCopyPopupData} title="Copy Data">
-              <ContentCopy />
-            </IconButton>
+          <Box display="flex" justifyContent="flex-end" mt={2}>
+            <Button onClick={() => setOpenPopup(false)} variant="outlined">
+              Close
+            </Button>
           </Box>
         </DialogContent>
       </Dialog>
