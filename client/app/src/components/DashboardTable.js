@@ -2,7 +2,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { getDashboardSummary } from "../services/dashboardApi";
 import { styled } from "@mui/material/styles";
-import { Box, IconButton } from "@mui/material";
+import {
+  Box,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+} from "@mui/material";
 import { FileDownload, Image, ContentCopy } from "@mui/icons-material";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
@@ -46,9 +52,21 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 }));
 
+const StyledClickableCell = styled("div")(({ theme }) => ({
+  cursor: "pointer",
+  color: theme.palette.primary.main,
+  textDecoration: "underline",
+  "&:hover": {
+    color: theme.palette.primary.dark,
+  },
+}));
+
 const DashboardTable = React.forwardRef(({ filters }, ref) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
+  const [openPopup, setOpenPopup] = useState(false);
+  const [popupData, setPopupData] = useState({ rows: [], columns: [] });
+  const [popupTitle, setPopupTitle] = useState("");
   const tableRef = useRef(null);
   const lastColumnHeaderRef = useRef(null);
 
@@ -110,6 +128,12 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
             key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
           minWidth: 150,
           flex: 1,
+          renderCell: (params) =>
+            index === 0 ? (
+              <StyledClickableCell>{params.value}</StyledClickableCell>
+            ) : (
+              params.value
+            ),
           cellClassName: (params) => {
             const isLastRow = params.row.id === data.length;
             const isFirstColumn = index === 0;
@@ -141,13 +165,53 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
 
         const rowsWithId = data.map((row, index) => ({
           ...row,
-          id: index + 1,
+          id: index,
         }));
         setRows(rowsWithId);
       }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
     }
+  };
+
+  const handleCellClick = async (params) => {
+    if (params.field === columns[0].field) {
+      setPopupTitle(params.value);
+      const response = await fetch("http://localhost:5000/dashboard/summary");
+      const data = await response.json();
+      const cols = Object.keys(data[0]).map((key) => ({
+        field: key,
+        headerName: key.replace(/_/g, " ").toUpperCase(),
+        flex: 1,
+      }));
+      setPopupData({
+        rows: data.map((row, index) => ({ ...row, id: index })),
+        columns: cols,
+      });
+      setOpenPopup(true);
+    }
+  };
+
+  const handleExportPopupExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(popupData.rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Popup Data");
+    XLSX.writeFile(workbook, "popup_data.xlsx");
+  };
+
+  const handleExportPopupImage = async () => {
+    const element = document.getElementById("popup-table");
+    const dataUrl = await htmlToImage.toPng(element);
+    const link = document.createElement("a");
+    link.download = "popup_table.png";
+    link.href = dataUrl;
+    link.click();
+  };
+
+  const handleCopyPopupData = () => {
+    const text = JSON.stringify(popupData.rows, null, 2);
+    navigator.clipboard.writeText(text);
+    alert("Data copied to clipboard!");
   };
 
   useEffect(() => {
@@ -230,8 +294,39 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
               overflow: "auto !important",
             },
           }}
+          onCellClick={handleCellClick}
         />
       </div>
+
+      <Dialog
+        open={openPopup}
+        onClose={() => setOpenPopup(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>{popupTitle}</DialogTitle>
+        <DialogContent>
+          <Box id="popup-table" style={{ height: 400, width: "100%" }}>
+            <DataGrid
+              rows={popupData.rows}
+              columns={popupData.columns}
+              autoHeight
+              pageSize={10}
+            />
+          </Box>
+          <Box display="flex" justifyContent="flex-end" mt={2} gap={2}>
+            <IconButton onClick={handleExportPopupExcel} title="Export Excel">
+              <FileDownload />
+            </IconButton>
+            <IconButton onClick={handleExportPopupImage} title="Export Image">
+              <Image />
+            </IconButton>
+            <IconButton onClick={handleCopyPopupData} title="Copy Data">
+              <ContentCopy />
+            </IconButton>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 });
