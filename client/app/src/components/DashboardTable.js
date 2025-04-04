@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { getDashboardSummary } from "../services/dashboardApi";
-import { styled } from "@mui/material/styles";
+import { lighten, styled } from "@mui/material/styles";
 import {
   Box,
   IconButton,
@@ -34,6 +34,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .last-row": {
     fontWeight: "bold",
+    backgroundColor: lighten("#008080", 0.5),
+    color: "#000",
   },
   "& .first-column": {
     fontWeight: "bold",
@@ -42,8 +44,14 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     fontWeight: "bold",
   },
   "& .negative-value": {
-    color: "red",
     fontWeight: "bold",
+    backgroundColor: "red",
+    color: "#000",
+  },
+  "& .high-pdp": {
+    fontWeight: "bold",
+    backgroundColor:"#FFC107",
+    color:"#000",
   },
   "& .MuiDataGrid-root": {
     overflowX: "auto",
@@ -133,16 +141,25 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
             const isLastRow = params.row.id === data.length;
             const isFirstColumn = index === 0;
             const isLastColumn = index === Object.keys(data[0]).length - 1;
+            const isMiddleColumn = ["Pdp", "PDP (PA-)", "PDP (A+)","Vcdp","VCDP (PA-)","VCDP (A)"
+            ].includes(params.colDef.headerName);
+            const numericValue = Number(params.value);
+            
             const isNegative =
-              isLastColumn &&
-              typeof params.value === "number" &&
-              params.value < 0;
+            (!isLastRow &&
+            isLastColumn && 
+            !isNaN(numericValue) && numericValue < 0);
 
-            return `${isLastRow ? "last-row" : ""} ${
-              isFirstColumn ? "first-column" : ""
-            } ${isLastColumn ? "last-column" : ""} ${
-              isNegative ? "negative-value" : ""
-            }`.trim();
+            const highPdp =
+            (!isLastRow &&
+              isMiddleColumn &&
+              !isNaN(numericValue) && numericValue > 10);
+            
+            return `${isLastRow ? "last-row" : ""} 
+            ${isFirstColumn ? "first-column" : ""}
+            ${isLastColumn ? "last-column" : ""}
+            ${highPdp? "high-pdp" : ""} 
+            ${isNegative ? "negative-value" : ""}`.trim();
           },
         }));
         setColumns(cols);
