@@ -231,9 +231,14 @@ const Demand = {
       ];
 
       const allValues = dataArray.map((data, rowIndex) => {
-        // Less aggressive normalization
         const normalizedData = Object.keys(data).reduce((acc, key) => {
-          const normalizedKey = key.trim().replace(/ /g, "_").toLowerCase(); // Only replace spaces with underscores and lowercase
+          const normalizedKey = key
+            .trim() // Remove leading/trailing spaces
+            .replace(/\s+/g, " ") // Replace multiple spaces with single space
+            .replace(/[^a-zA-Z0-9\s]/g, "_") // Replace special chars with underscore
+            .replace(/\s/g, "_") // Replace remaining spaces with underscore
+            .replace(/_+/g, "_") // Replace multiple underscores with single underscore
+            .toLowerCase(); // Convert to lowercase
           acc[normalizedKey] = data[key];
           return acc;
         }, {});
@@ -249,7 +254,7 @@ const Demand = {
           // Handle dates
           if (
             col.toLowerCase().includes("date") ||
-            col.toLowerCase().includes("_on") ||
+            //col.toLowerCase().includes("_on") ||
             col === "oe_approver_date" ||
             col === "tsc_approver_date"
           ) {
