@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { getDashboardSummary } from "../services/dashboardApi";
 import { lighten, styled } from "@mui/material/styles";
 import {
   Box,
@@ -9,6 +8,7 @@ import {
   DialogTitle,
   DialogContent,
   Button,
+  Typography,
 } from "@mui/material";
 import {
   FileDownload,
@@ -18,6 +18,7 @@ import {
 } from "@mui/icons-material";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
+import axios from "axios";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeader": {
@@ -50,8 +51,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .high-pdp": {
     fontWeight: "bold",
-    backgroundColor:"#FFC107",
-    color:"#000",
+    backgroundColor: "#FFC107",
+    color: "#000",
   },
   "& .MuiDataGrid-root": {
     overflowX: "auto",
@@ -75,7 +76,7 @@ const StyledClickableCell = styled("div")(({ theme }) => ({
   },
 }));
 
-const DashboardTable = React.forwardRef(({ filters }, ref) => {
+const DashboardTable = ({ reportData }) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [openPopup, setOpenPopup] = useState(false);
@@ -83,6 +84,88 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
   const [popupTitle, setPopupTitle] = useState("");
   const tableRef = useRef(null);
   const popupTableRef = useRef(null);
+
+  useMemo(() => {
+    if (reportData && reportData.length > 0) {
+      const cols = Object.keys(reportData[0]).map((key, index) => ({
+        field: key,
+        headerName:
+          key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
+        minWidth: 150,
+        flex: 1,
+        renderCell: (params) =>
+          index === 0 ? (
+            <StyledClickableCell>{params.value}</StyledClickableCell>
+          ) : (
+            params.value
+          ),
+        cellClassName: (params) => {
+          const isLastRow = params.row.id === reportData.length;
+          const isFirstColumn = index === 0;
+          const isLastColumn = index === Object.keys(reportData[0]).length - 1;
+          const isMiddleColumn = [
+            "Pdp",
+            "PDP (PA-)",
+            "PDP (A+)",
+            "Vcdp",
+            "VCDP (PA-)",
+            "VCDP (A)",
+          ].includes(params.colDef.headerName);
+          const numericValue = Number(params.value);
+
+          const isNegative =
+            !isLastRow &&
+            isLastColumn &&
+            !isNaN(numericValue) &&
+            numericValue < 0;
+
+          const highPdp =
+            !isLastRow &&
+            isMiddleColumn &&
+            !isNaN(numericValue) &&
+            numericValue > 10;
+
+          return `${isLastRow ? "last-row" : ""} 
+            ${isFirstColumn ? "first-column" : ""}
+            ${isLastColumn ? "last-column" : ""}
+            ${highPdp ? "high-pdp" : ""} 
+            ${isNegative ? "negative-value" : ""}`.trim();
+        },
+      }));
+      setColumns(cols);
+      setRows(reportData.map((row, index) => ({ ...row, id: index + 1 })));
+    }
+  }, [reportData]);
+
+  const handleCellClick = async (params) => {
+    if (params.field === columns[0].field) {
+      const cellValue = params.value;
+      setPopupTitle(`Demand Supply Dashboard - Skill : ${cellValue}`);
+      try {
+        const response = await axios.get(
+          `http://localhost:5000/dashboard/detailview`,
+          {
+            params: {
+              skill: cellValue,
+            },
+          }
+        );
+        const data = response.data;
+        const cols = Object.keys(data[0]).map((key) => ({
+          field: key,
+          headerName: key.replace(/_/g, " ").toUpperCase(),
+          flex: 1,
+        }));
+        setPopupData({
+          rows: data.map((row, index) => ({ ...row, id: index + 1 })),
+          columns: cols,
+        });
+        setOpenPopup(true);
+      } catch (error) {
+        console.error("Error fetching popup data:", error);
+      }
+    }
+  };
 
   const handleExportExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -121,77 +204,6 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
     }
   };
 
-  const loadData = async (currentFilters = filters) => {
-    try {
-      const data = await getDashboardSummary(currentFilters);
-      if (data && data.length > 0) {
-        const cols = Object.keys(data[0]).map((key, index) => ({
-          field: key,
-          headerName:
-            key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
-          minWidth: 150,
-          flex: 1,
-          renderCell: (params) =>
-            index === 0 ? (
-              <StyledClickableCell>{params.value}</StyledClickableCell>
-            ) : (
-              params.value
-            ),
-          cellClassName: (params) => {
-            const isLastRow = params.row.id === data.length;
-            const isFirstColumn = index === 0;
-            const isLastColumn = index === Object.keys(data[0]).length - 1;
-            const isMiddleColumn = ["Pdp", "PDP (PA-)", "PDP (A+)","Vcdp","VCDP (PA-)","VCDP (A)"
-            ].includes(params.colDef.headerName);
-            const numericValue = Number(params.value);
-            
-            const isNegative =
-            (!isLastRow &&
-            isLastColumn && 
-            !isNaN(numericValue) && numericValue < 0);
-
-            const highPdp =
-            (!isLastRow &&
-              isMiddleColumn &&
-              !isNaN(numericValue) && numericValue > 10);
-            
-            return `${isLastRow ? "last-row" : ""} 
-            ${isFirstColumn ? "first-column" : ""}
-            ${isLastColumn ? "last-column" : ""}
-            ${highPdp? "high-pdp" : ""} 
-            ${isNegative ? "negative-value" : ""}`.trim();
-          },
-        }));
-        setColumns(cols);
-        setRows(data.map((row, index) => ({ ...row, id: index + 1 })));
-      }
-    } catch (error) {
-      console.error("Error loading dashboard data:", error);
-    }
-  };
-
-  const handleCellClick = async (params) => {
-    if (params.field === columns[0].field) {
-      setPopupTitle(params.value);
-      try {
-        const response = await fetch("http://localhost:5000/dashboard/summary");
-        const data = await response.json();
-        const cols = Object.keys(data[0]).map((key) => ({
-          field: key,
-          headerName: key.replace(/_/g, " ").toUpperCase(),
-          flex: 1,
-        }));
-        setPopupData({
-          rows: data.map((row, index) => ({ ...row, id: index + 1 })),
-          columns: cols,
-        });
-        setOpenPopup(true);
-      } catch (error) {
-        console.error("Error fetching popup data:", error);
-      }
-    }
-  };
-
   const handleExportPopupExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(popupData.rows);
     const workbook = XLSX.utils.book_new();
@@ -223,14 +235,6 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
       console.error("Error copying popup data:", error);
     }
   };
-
-  useEffect(() => {
-    loadData();
-  }, [filters]);
-
-  React.useImperativeHandle(ref, () => ({
-    refresh: loadData,
-  }));
 
   return (
     <Box sx={{ position: "relative" }}>
@@ -282,11 +286,11 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
           pagination={false}
           hideFooterPagination
           autoWidth
+          onCellClick={handleCellClick} // Added onCellClick
           sx={{
             "& .MuiDataGrid-main": { overflow: "auto" },
             "& .MuiDataGrid-virtualScroller": { overflow: "auto !important" },
           }}
-          onCellClick={handleCellClick}
         />
       </div>
 
@@ -296,11 +300,22 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
         maxWidth="lg"
         fullWidth
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center" }}>
-          {popupTitle}
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#008080", // Header background color
+            color: "#fff", // Header text color
+            padding: "16px",
+            fontWeight: "bold",
+          }}
+        >
+          <Typography variant="h6" component="div">
+            {popupTitle}
+          </Typography>
           <IconButton
             onClick={() => setOpenPopup(false)}
-            sx={{ marginLeft: "auto" }}
+            sx={{ marginLeft: "auto", color: "#fff" }}
           >
             <CloseIcon />
           </IconButton>
@@ -373,6 +388,6 @@ const DashboardTable = React.forwardRef(({ filters }, ref) => {
       </Dialog>
     </Box>
   );
-});
+};
 
 export default DashboardTable;
