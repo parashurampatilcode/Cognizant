@@ -1,61 +1,123 @@
-import React, { useState } from 'react';
-import { Box, ToggleButton, ToggleButtonGroup, FormControl, Select, MenuItem } from '@mui/material';
+import React, { useState } from "react";
+import {
+  Box,
+  FormControl,
+  Select,
+  MenuItem,
+  InputLabel,
+  Button,
+} from "@mui/material";
+import axios from "axios";
 
-const FilterControls = ({ onFilterChange }) => {
-  const [viewType, setViewType] = useState('Practice');
-  const [location, setLocation] = useState('All');
+const FilterControls = ({ onReportData }) => {
+  const [practice, setPractice] = useState("All");
+  const [market, setMarket] = useState("All");
+  const [offOn, setOffOn] = useState("All");
+  const [loading, setLoading] = useState(false);
 
-  const handleViewTypeChange = (event, newViewType) => {
-    if (newViewType !== null) {
-      setViewType(newViewType);
-      onFilterChange({ viewType: newViewType, location });
+  const handlePracticeChange = (event) => {
+    setPractice(event.target.value);
+  };
+
+  const handleMarketChange = (event) => {
+    setMarket(event.target.value);
+  };
+
+  const handleOffOnChange = (event) => {
+    setOffOn(event.target.value);
+  };
+
+  const handleViewReport = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        "http://localhost:5000/dashboard/report",
+        {
+          params: {
+            practice,
+            market,
+            offOn,
+          },
+        }
+      );
+      if (onReportData) {
+        onReportData(response.data, { practice, market, offOn }); // Pass filter values here
+      }
+    } catch (error) {
+      console.error("Error fetching report:", error);
+      // You might want to add error handling UI here
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleLocationChange = (event) => {
-    const newLocation = event.target.value;
-    setLocation(newLocation);
-    onFilterChange({ viewType, location: newLocation });
-  };
+  const isButtonDisabled =
+    practice === "All" || market === "All" || offOn === "All" || loading;
 
   return (
-    <Box sx={{ 
-      display: 'flex', 
-      gap: 2, 
-      mb: 3, 
-      alignItems: 'center',
-      flexWrap: 'wrap'
-    }}>
-      <ToggleButtonGroup
-        value={viewType}
-        exclusive
-        onChange={handleViewTypeChange}
-        aria-label="view type"
-        size="small"
-      >
-        <ToggleButton value="Practice" aria-label="practice view">
-          Practice
-        </ToggleButton>
-        <ToggleButton value="NA View" aria-label="na view">
-          NA View
-        </ToggleButton>
-        <ToggleButton value="GGM View" aria-label="ggm view">
-          GGM View
-        </ToggleButton>
-      </ToggleButtonGroup>
-
-      <FormControl size="small" sx={{ minWidth: 120 }}>
+    <Box
+      sx={{
+        display: "flex",
+        gap: 2,
+        mb: 3,
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}
+    >
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="practice-label">Practice</InputLabel>
         <Select
-          value={location}
-          onChange={handleLocationChange}
-          displayEmpty
-          inputProps={{ 'aria-label': 'Location filter' }}
+          labelId="practice-label"
+          id="practice-select"
+          value={practice}
+          label="Practice"
+          onChange={handlePracticeChange}
         >
           <MenuItem value="All">All</MenuItem>
-          <MenuItem value="Onsite">Onsite</MenuItem>
-          <MenuItem value="Offshore">Offshore</MenuItem>
+          <MenuItem value="EPS PEGA">EPS PEGA</MenuItem>
+          <MenuItem value="EPS IPM">EPS IPM</MenuItem>
         </Select>
       </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="market-label">Market</InputLabel>
+        <Select
+          labelId="market-label"
+          id="market-select"
+          value={market}
+          label="Market"
+          onChange={handleMarketChange}
+        >
+          <MenuItem value="All">All</MenuItem>
+          <MenuItem value="NA">NA</MenuItem>
+          <MenuItem value="GGM">GGM</MenuItem>
+          <MenuItem value="Others">Others</MenuItem>
+        </Select>
+      </FormControl>
+
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="off-on-label">Off/On</InputLabel>
+        <Select
+          labelId="off-on-label"
+          id="off-on-select"
+          value={offOn}
+          label="Off/On"
+          onChange={handleOffOnChange}
+        >
+          <MenuItem value="All">All</MenuItem>
+          <MenuItem value="onsite">onsite</MenuItem>
+          <MenuItem value="offshore">offshore</MenuItem>
+        </Select>
+      </FormControl>
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleViewReport}
+        disabled={isButtonDisabled}
+      >
+        {loading ? "Loading..." : "View Report"}
+      </Button>
     </Box>
   );
 };
