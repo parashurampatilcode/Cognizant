@@ -22,6 +22,11 @@ import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import axios from "axios";
 
+const primaryColor = "#005EB8"; // Cognizant's primary blue
+const secondaryColor = "#E6F0FA"; // Light blue
+const lightGrey = "#F5F5F5";
+const darkGrey = "#D3D3D3";
+
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeader": {
     "& .MuiDataGrid-columnHeaderTitleContainer": {
@@ -29,15 +34,15 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
         fontWeight: "bold !important",
       },
     },
-    backgroundColor: "#008080 !important",
-    color: "#fff !important",
-    fontSize: "1rem !important",
-    textTransform: "uppercase",
-    borderBottom: "2px solid #ccc",
+    backgroundColor: primaryColor, // Changed to primary blue
+    color: "#FFFFFF !important", // White text for better contrast
+    fontSize: "0.95rem !important",
+    textTransform: "none",
+    borderBottom: `2px solid ${primaryColor}`,
   },
   "& .last-row": {
     fontWeight: "bold",
-    backgroundColor: lighten("#008080", 0.5),
+    backgroundColor: lighten(primaryColor, 0.85), // Lighter shade of blue for last row
     color: "#000",
   },
   "& .first-column": {
@@ -45,11 +50,12 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .last-column": {
     fontWeight: "bold",
+    backgroundColor: lighten(primaryColor, 0.85), // Lighter shade of blue for last column
   },
   "& .negative-value": {
     fontWeight: "bold",
-    backgroundColor: "red",
-    color: "#000",
+    backgroundColor: "#FF4D4D", // Brighter red
+    color: "#fff",
   },
   "& .high-pdp": {
     fontWeight: "bold",
@@ -63,6 +69,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
+    borderBottom: `1px solid ${darkGrey}`,
   },
   "& .MuiDataGrid-columnHeaders": {
     whiteSpace: "nowrap",
@@ -164,10 +171,44 @@ const DashboardTable = ({ reportData, filterValues }) => {
           }
         );
         const data = response.data;
-        const cols = Object.keys(data[0]).map((key) => ({
+        const cols = Object.keys(data[0]).map((key, index) => ({
           field: key,
           headerName: key.replace(/_/g, " ").toUpperCase(),
           flex: 1,
+          cellClassName: (params) => {
+            const isLastRow = params.row.id === data.length;
+            const isLastColumn = index === Object.keys(data[0]).length - 1;
+            const isMiddleColumn = [
+              "Pdp",
+              "PDP (PA-)",
+              "PDP (A+)",
+              "Vcdp",
+              "VCDP (PA-)",
+              "VCDP (A)",
+            ].some((header) =>
+              params.colDef.headerName
+                .toUpperCase()
+                .includes(header.toUpperCase())
+            );
+            const numericValue = Number(params.value);
+
+            const isNegative =
+              !isLastRow &&
+              isLastColumn &&
+              !isNaN(numericValue) &&
+              numericValue < 0;
+
+            const highPdp =
+              !isLastRow &&
+              isMiddleColumn &&
+              !isNaN(numericValue) &&
+              numericValue > 10;
+
+            return `${isLastRow ? "last-row" : ""} 
+              ${isLastColumn ? "last-column" : ""}
+              ${highPdp ? "high-pdp" : ""}               
+              ${isNegative ? "negative-value" : ""}`.trim();
+          },
         }));
         setPopupData({
           rows: data.map((row, index) => ({ ...row, id: index + 1 })),
@@ -265,21 +306,21 @@ const DashboardTable = ({ reportData, filterValues }) => {
         <IconButton
           onClick={handleExportExcel}
           title="Export Excel"
-          sx={{ color: "#008080" }}
+          sx={{ color: primaryColor }}
         >
           <FileDownload />
         </IconButton>
         <IconButton
           onClick={handleExportImage}
           title="Export Image"
-          sx={{ color: "#008080" }}
+          sx={{ color: primaryColor }}
         >
           <Image />
         </IconButton>
         <IconButton
           onClick={handleCopyData}
           title="Copy Data"
-          sx={{ color: "#008080" }}
+          sx={{ color: primaryColor }}
         >
           <ContentCopy />
         </IconButton>
@@ -317,7 +358,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
           sx={{
             display: "flex",
             alignItems: "center",
-            backgroundColor: "#008080",
+            backgroundColor: primaryColor,
             color: "#fff",
             padding: "16px",
             fontWeight: "bold",
@@ -335,7 +376,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
         </DialogTitle>
         <DialogContent>
           {filterContext && (
-            <Box sx={{ mb: 2, p: 1, bgcolor: "#F5F5F5", borderRadius: 1 }}>
+            <Box sx={{ mb: 2, p: 1, bgcolor: lightGrey, borderRadius: 1 }}>
               <Typography
                 variant="body2"
                 sx={{
@@ -345,24 +386,40 @@ const DashboardTable = ({ reportData, filterValues }) => {
                   alignItems: "center",
                 }}
               >
-                <Typography component="span" sx={{ fontWeight: "bold" }}>
-                  Practice:
-                </Typography>
-                {filterContext.practice}
-                <Typography component="span" sx={{ fontWeight: "bold" }}>
-                  Market:
-                </Typography>
-                {filterContext.market}
-                <Typography component="span" sx={{ fontWeight: "bold" }}>
-                  Off/On:
-                </Typography>
-                {filterContext.offOn}
-                <Typography component="span" sx={{ fontWeight: "bold" }}>
-                  Skill:
-                </Typography>
-                {filterContext.value}
+                <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                  <Typography component="span" sx={{ fontWeight: "bold" }}>
+                    Practice:
+                  </Typography>
+                  <Typography component="span">
+                    {filterContext.practice}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                  <Typography component="span" sx={{ fontWeight: "bold" }}>
+                    Market:
+                  </Typography>
+                  <Typography component="span">
+                    {filterContext.market}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                  <Typography component="span" sx={{ fontWeight: "bold" }}>
+                    Off/On:
+                  </Typography>
+                  <Typography component="span">
+                    {filterContext.offOn}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                  <Typography component="span" sx={{ fontWeight: "bold" }}>
+                    Skill:
+                  </Typography>
+                  <Typography component="span">
+                    {filterContext.value}
+                  </Typography>
+                </Box>
               </Typography>
-              <Divider sx={{ borderColor: "#D3D3D3" }} />
+              <Divider sx={{ borderColor: darkGrey }} />
             </Box>
           )}
           <Box sx={{ position: "relative", paddingTop: 5 }}>
@@ -380,21 +437,21 @@ const DashboardTable = ({ reportData, filterValues }) => {
               <IconButton
                 onClick={handleExportPopupExcel}
                 title="Export Excel"
-                sx={{ color: "#008080" }}
+                sx={{ color: primaryColor }}
               >
                 <FileDownload />
               </IconButton>
               <IconButton
                 onClick={handleExportPopupImage}
                 title="Export Image"
-                sx={{ color: "#008080" }}
+                sx={{ color: primaryColor }}
               >
                 <Image />
               </IconButton>
               <IconButton
                 onClick={handleCopyPopupData}
                 title="Copy Data"
-                sx={{ color: "#008080" }}
+                sx={{ color: primaryColor }}
               >
                 <ContentCopy />
               </IconButton>
@@ -418,6 +475,16 @@ const DashboardTable = ({ reportData, filterValues }) => {
                   "& .MuiDataGrid-main": { overflow: "auto" },
                   "& .MuiDataGrid-virtualScroller": {
                     overflow: "auto !important",
+                  },
+                  "& .MuiDataGrid-columnHeader": {
+                    backgroundColor: primaryColor,
+                    color: "#FFFFFF !important",
+                  },
+                  "& .last-row": {
+                    backgroundColor: lighten(primaryColor, 0.85),
+                  },
+                  "& .last-column": {
+                    backgroundColor: lighten(primaryColor, 0.85),
                   },
                 }}
               />
