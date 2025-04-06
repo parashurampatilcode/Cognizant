@@ -343,7 +343,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
                   flexWrap: "wrap",
                   gap: 1,
                   alignItems: "center",
-                }} // Added alignItems
+                }}
               >
                 <Typography component="span" sx={{ fontWeight: "bold" }}>
                   Practice:
@@ -360,7 +360,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
                 <Typography component="span" sx={{ fontWeight: "bold" }}>
                   Skill:
                 </Typography>
-                {filterContext.value}{" "}
+                {filterContext.value}
               </Typography>
               <Divider sx={{ borderColor: "#D3D3D3" }} />
             </Box>
