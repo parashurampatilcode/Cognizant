@@ -1,3 +1,4 @@
+// c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\components\DashboardTable.js
 import React, { useState, useRef, useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { lighten, styled } from "@mui/material/styles";
@@ -9,6 +10,7 @@ import {
   DialogContent,
   Button,
   Typography,
+  Divider,
 } from "@mui/material";
 import {
   FileDownload,
@@ -76,12 +78,13 @@ const StyledClickableCell = styled("div")(({ theme }) => ({
   },
 }));
 
-const DashboardTable = ({ reportData }) => {
+const DashboardTable = ({ reportData, filterValues }) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [openPopup, setOpenPopup] = useState(false);
   const [popupData, setPopupData] = useState({ rows: [], columns: [] });
   const [popupTitle, setPopupTitle] = useState("");
+  const [filterContext, setFilterContext] = useState(null);
   const tableRef = useRef(null);
   const popupTableRef = useRef(null);
 
@@ -141,11 +144,21 @@ const DashboardTable = ({ reportData }) => {
     if (params.field === columns[0].field) {
       const cellValue = params.value;
       setPopupTitle(`Demand Supply Dashboard - Skill : ${cellValue}`);
+      setFilterContext({
+        practice: filterValues.practice,
+        market: filterValues.market,
+        offOn: filterValues.offOn,
+        skill: columns[0].headerName,
+        value: cellValue,
+      });
       try {
         const response = await axios.get(
           `http://localhost:5000/dashboard/detailview`,
           {
             params: {
+              practice: filterValues.practice,
+              market: filterValues.market,
+              offOn: filterValues.offOn,
               skill: cellValue,
             },
           }
@@ -286,7 +299,7 @@ const DashboardTable = ({ reportData }) => {
           pagination={false}
           hideFooterPagination
           autoWidth
-          onCellClick={handleCellClick} // Added onCellClick
+          onCellClick={handleCellClick}
           sx={{
             "& .MuiDataGrid-main": { overflow: "auto" },
             "& .MuiDataGrid-virtualScroller": { overflow: "auto !important" },
@@ -304,8 +317,8 @@ const DashboardTable = ({ reportData }) => {
           sx={{
             display: "flex",
             alignItems: "center",
-            backgroundColor: "#008080", // Header background color
-            color: "#fff", // Header text color
+            backgroundColor: "#008080",
+            color: "#fff",
             padding: "16px",
             fontWeight: "bold",
           }}
@@ -321,6 +334,37 @@ const DashboardTable = ({ reportData }) => {
           </IconButton>
         </DialogTitle>
         <DialogContent>
+          {filterContext && (
+            <Box sx={{ mb: 2, p: 1, bgcolor: "#F5F5F5", borderRadius: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  alignItems: "center",
+                }} // Added alignItems
+              >
+                <Typography component="span" sx={{ fontWeight: "bold" }}>
+                  Practice:
+                </Typography>
+                {filterContext.practice}
+                <Typography component="span" sx={{ fontWeight: "bold" }}>
+                  Market:
+                </Typography>
+                {filterContext.market}
+                <Typography component="span" sx={{ fontWeight: "bold" }}>
+                  Off/On:
+                </Typography>
+                {filterContext.offOn}
+                <Typography component="span" sx={{ fontWeight: "bold" }}>
+                  Skill:
+                </Typography>
+                {filterContext.value}{" "}
+              </Typography>
+              <Divider sx={{ borderColor: "#D3D3D3" }} />
+            </Box>
+          )}
           <Box sx={{ position: "relative", paddingTop: 5 }}>
             <Box
               sx={{

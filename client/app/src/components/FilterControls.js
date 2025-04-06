@@ -41,7 +41,7 @@ const FilterControls = ({ onReportData }) => {
         }
       );
       if (onReportData) {
-        onReportData(response.data);
+        onReportData(response.data, { practice, market, offOn }); // Pass filter values here
       }
     } catch (error) {
       console.error("Error fetching report:", error);

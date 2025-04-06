@@ -1,3 +1,4 @@
+// c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\pages\Dashboard.js
 import React, { useState } from "react";
 import { Typography, Box } from "@mui/material";
 import DashboardTable from "../components/DashboardTable";
@@ -5,9 +6,11 @@ import FilterControls from "../components/FilterControls";
 
 function Dashboard() {
   const [reportData, setReportData] = useState(null);
+  const [filterValues, setFilterValues] = useState({});
 
-  const handleReportData = (data) => {
+  const handleReportData = (data, filters) => {
     setReportData(data);
+    setFilterValues(filters);
   };
 
   return (
@@ -23,7 +26,9 @@ function Dashboard() {
         <Typography variant="h4">Dashboard</Typography>
       </Box>
       <FilterControls onReportData={handleReportData} />
-      {reportData && <DashboardTable reportData={reportData} />}
+      {reportData && (
+        <DashboardTable reportData={reportData} filterValues={filterValues} />
+      )}
     </Box>
   );
 }
