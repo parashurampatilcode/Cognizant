@@ -13,6 +13,7 @@ const FilterControls = ({ onReportData }) => {
   const [practice, setPractice] = useState("All");
   const [market, setMarket] = useState("All");
   const [offOn, setOffOn] = useState("All");
+  const [busUnit, setBusUnit] = useState("All");
   const [loading, setLoading] = useState(false);
 
   const handlePracticeChange = (event) => {
@@ -107,6 +108,33 @@ const FilterControls = ({ onReportData }) => {
           <MenuItem value="All">All</MenuItem>
           <MenuItem value="onsite">onsite</MenuItem>
           <MenuItem value="offshore">offshore</MenuItem>
+        </Select>
+      </FormControl>
+
+
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel id="bus-unit-label">Business Unit</InputLabel>
+        <Select
+          labelId="bus-unit-label"
+          id="bus-unit-select"
+          value={busUnit}
+          label="Business Unit"
+          onChange={handleOffOnChange}
+        >
+          <MenuItem value="All">All</MenuItem>
+          <MenuItem value="ANZ">ANZ</MenuItem>
+          <MenuItem value="ASEAN and GCN">ASEAN and GCN</MenuItem>
+          <MenuItem value="CMT NA">CMT NA</MenuItem>
+          <MenuItem value="DACH">DACH</MenuItem>
+          <MenuItem value="FSI NA">FSI NA</MenuItem>
+          <MenuItem value="HEALTH NA">HEALTH NA</MenuItem>
+          <MenuItem value="India">India</MenuItem>
+          <MenuItem value="MLEU NA">MLEU NA</MenuItem>
+          <MenuItem value="Northern Europe">Northern Europe</MenuItem>
+          <MenuItem value="Others">Others</MenuItem>
+          <MenuItem value="RCGTH NA">RCGTH NA</MenuItem>
+          <MenuItem value="Southern Europe & Middle East">Southern Europe & Middle East</MenuItem>
+          <MenuItem value="UK&I">UK&I</MenuItem>
         </Select>
       </FormControl>
 
