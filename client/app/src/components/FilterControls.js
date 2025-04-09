@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import axios from "axios";
 
-const FilterControls = ({ onReportData }) => {
+const FilterControls = ({ onReportData, reportName }) => {
   const [practice, setPractice] = useState("All");
   const [market, setMarket] = useState("All");
   const [offOn, setOffOn] = useState("All");
@@ -28,22 +28,67 @@ const FilterControls = ({ onReportData }) => {
     setOffOn(event.target.value);
   };
 
+  const handleBusUnitChange = (event) => {
+    setBusUnit(event.target.value);
+  };
+
   const handleViewReport = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        "http://localhost:5000/dashboard/report",
-        {
-          params: {
-            practice,
-            market,
-            offOn,
-          },
+      
+      if(reportName === 'Demand')
+      {
+        const skillCountsByMonth = await axios.get(
+          "http://localhost:5000/demand/skillCountsByMonth",
+          {
+            params: {
+              practice,
+              market,
+              offOn,
+              busUnit,
+            },
+          }
+        );
+        const top10AccountsCountsByMonth = await axios.get(
+          "http://localhost:5000/demand/top10AccountsCountsByMonth",
+          {
+            params: {
+              practice,
+              market,
+              offOn,
+              busUnit,
+            },
+          }
+        );
+        const skillCountsByMonthResponse = {skillCountsByMonth : skillCountsByMonth};
+        const top10AccountsCountsByMonthResponse = {top10AccountsCountsByMonth : top10AccountsCountsByMonth};
+        const demandResponse = Object.assign({},skillCountsByMonthResponse,top10AccountsCountsByMonthResponse);
+        console.log("FilterControl - ReportName -"+reportName);
+        console.log("skillCountsByMonthResponse",skillCountsByMonthResponse);
+        console.log("top10AccountsCountsByMonthResponse",top10AccountsCountsByMonthResponse);
+        console.log("demandResponse",demandResponse);
+
+        if (onReportData) {
+          onReportData(demandResponse, { practice, market, offOn, busUnit }); // Pass filter values here
         }
-      );
-      if (onReportData) {
-        onReportData(response.data, { practice, market, offOn }); // Pass filter values here
       }
+      else{
+         const dashboardResponse = await axios.get(
+          "http://localhost:5000/dashboard/report",
+          {
+            params: {
+              practice,
+              market,
+              offOn,
+            },
+          }
+        );
+        if (onReportData) {
+          onReportData(dashboardResponse.data, { practice, market, offOn }); // Pass filter values here
+        }
+      }
+      
+      
     } catch (error) {
       console.error("Error fetching report:", error);
       // You might want to add error handling UI here
@@ -119,7 +164,7 @@ const FilterControls = ({ onReportData }) => {
           id="bus-unit-select"
           value={busUnit}
           label="Business Unit"
-          onChange={handleOffOnChange}
+          onChange={handleBusUnitChange}
         >
           <MenuItem value="All">All</MenuItem>
           <MenuItem value="ANZ">ANZ</MenuItem>
