@@ -117,15 +117,14 @@ router.get("/top10AccountsCountsByMonth", async (req, res) => {
 
 router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
   try {
-    const { practice, market, offOn, busUnit, account } = req.query;
-
+    const { practice, market, offOn, busUnit } = req.query;
     // Validate required parameters
-    if (!practice || !market || !offOn || !busUnit || !account) {
-      return res.status(400).json({ error: "Missing required parameters" });
+    if (!practice || !market || !offOn || !busUnit ) {
+      return res.status(400).json({ error: "Missing required parameters-" });
     }
-
-    const query = "SELECT * FROM get_demand_top10_accounts_breakup_counts_by_month_pivot_v1($1, $2, $3, $4, $5)";
-    const queryParams = [practice, market, offOn, busUnit, account];
+    //get_demand_top10_accounts_breakup_counts_by_month_pivot_v1($1, $2, $3, $4, $5);
+    const query = "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v1($1, $2, $3, $4)";
+    const queryParams = [practice, market, offOn, busUnit];
 
     const result = await pool.query(query, queryParams);
 

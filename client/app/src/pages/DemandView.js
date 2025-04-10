@@ -22,7 +22,6 @@ function DemandView() {
 
   return (
   <Box sx={{ width: "100%" }}>
-     <DemandViewTable />
         <Box
           sx={{
             display: "flex",
@@ -35,10 +34,10 @@ function DemandView() {
         </Box>
         <FilterControls onReportData={handleReportData} reportName = 'Demand' />
         {skillCountsByMonthData && (
-          <DashboardTable reportData={skillCountsByMonthData} filterValues={filterValues} />
+          <DemandViewTable reportData={skillCountsByMonthData} filterValues={filterValues} tableName = 'Skills' />
         )}
         {top10AccountsCountsByMonthData && (
-          <DashboardTable reportData={top10AccountsCountsByMonthData} filterValues={filterValues} />
+          <DemandViewTable reportData={top10AccountsCountsByMonthData} filterValues={filterValues} tableName = 'Top10Accounts'/>
         )}
       </Box>
   
