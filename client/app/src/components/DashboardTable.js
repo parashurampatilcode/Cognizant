@@ -109,38 +109,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
           ) : (
             params.value
           ),
-        cellClassName: (params) => {
-          const isLastRow = params.row.id === reportData.length;
-          const isFirstColumn = index === 0;
-          const isLastColumn = index === Object.keys(reportData[0]).length - 1;
-          const isMiddleColumn = [
-            "Pdp",
-            "PDP (PA-)",
-            "PDP (A+)",
-            "Vcdp",
-            "VCDP (PA-)",
-            "VCDP (A)",
-          ].includes(params.colDef.headerName);
-          const numericValue = Number(params.value);
-
-          const isNegative =
-            !isLastRow &&
-            isLastColumn &&
-            !isNaN(numericValue) &&
-            numericValue < 0;
-
-          const highPdp =
-            !isLastRow &&
-            isMiddleColumn &&
-            !isNaN(numericValue) &&
-            numericValue > 10;
-
-          return `${isLastRow ? "last-row" : ""} 
-            ${isFirstColumn ? "first-column" : ""}
-            ${isLastColumn ? "last-column" : ""}
-            ${highPdp ? "high-pdp" : ""} 
-            ${isNegative ? "negative-value" : ""}`.trim();
-        },
+        cellClassName: (params) => getCellClassName(params, reportData, index),
       }));
       setColumns(cols);
       setRows(reportData.map((row, index) => ({ ...row, id: index + 1 })));
@@ -175,40 +144,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
           field: key,
           headerName: key.replace(/_/g, " ").toUpperCase(),
           flex: 1,
-          cellClassName: (params) => {
-            const isLastRow = params.row.id === data.length;
-            const isLastColumn = index === Object.keys(data[0]).length - 1;
-            const isMiddleColumn = [
-              "Pdp",
-              "PDP (PA-)",
-              "PDP (A+)",
-              "Vcdp",
-              "VCDP (PA-)",
-              "VCDP (A)",
-            ].some((header) =>
-              params.colDef.headerName
-                .toUpperCase()
-                .includes(header.toUpperCase())
-            );
-            const numericValue = Number(params.value);
-
-            const isNegative =
-              !isLastRow &&
-              isLastColumn &&
-              !isNaN(numericValue) &&
-              numericValue < 0;
-
-            const highPdp =
-              !isLastRow &&
-              isMiddleColumn &&
-              !isNaN(numericValue) &&
-              numericValue > 10;
-
-            return `${isLastRow ? "last-row" : ""} 
-              ${isLastColumn ? "last-column" : ""}
-              ${highPdp ? "high-pdp" : ""}               
-              ${isNegative ? "negative-value" : ""}`.trim();
-          },
+          cellClassName: (params) => getCellClassName(params, data, index),
         }));
         setPopupData({
           rows: data.map((row, index) => ({ ...row, id: index + 1 })),
@@ -220,6 +156,34 @@ const DashboardTable = ({ reportData, filterValues }) => {
       }
     }
   };
+
+  const getCellClassName = (params, reportData, index) => {
+    const isLastRow = params.row.id === reportData.length;
+    const isFirstColumn = index === 0;
+    const isLastColumn = index === Object.keys(reportData[0]).length - 1;
+    const isMiddleColumn = [
+      "Pdp",
+      "PDP (PA-)",
+      "PDP (A+)",
+      "Vcdp",
+      "VCDP (PA-)",
+      "VCDP (A)",
+    ].includes(params.colDef.headerName);
+    const numericValue = Number(params.value);
+  
+    const isNegative =
+      isLastColumn && !isNaN(numericValue) && numericValue < 0;
+  
+    const highPdp =
+      !isLastRow && isMiddleColumn && !isNaN(numericValue) && numericValue > 10;
+  
+    return `${isLastRow ? "last-row" : ""} 
+            ${isFirstColumn ? "first-column" : ""}
+            ${isLastColumn ? "last-column" : ""}
+            ${highPdp ? "high-pdp" : ""} 
+            ${isNegative ? "negative-value" : ""}`.trim();
+  };
+
 
   const handleExportExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -475,16 +439,6 @@ const DashboardTable = ({ reportData, filterValues }) => {
                   "& .MuiDataGrid-main": { overflow: "auto" },
                   "& .MuiDataGrid-virtualScroller": {
                     overflow: "auto !important",
-                  },
-                  "& .MuiDataGrid-columnHeader": {
-                    backgroundColor: primaryColor,
-                    color: "#FFFFFF !important",
-                  },
-                  "& .last-row": {
-                    backgroundColor: lighten(primaryColor, 0.85),
-                  },
-                  "& .last-column": {
-                    backgroundColor: lighten(primaryColor, 0.85),
                   },
                 }}
               />
