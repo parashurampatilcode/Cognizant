@@ -6,6 +6,7 @@ const pdpRoutes = require("./routes/pdp");
 const vcdpRoutes = require("./routes/vcdp");
 const demandRoutes = require("./routes/demand");
 const lateralHiringRouter = require("./routes/lateralHiring");
+const demandselectRoutes = require("./routes/demandselect");
 require("dotenv").config();
 
 const app = express();
@@ -22,9 +23,8 @@ app.use("/pdp", pdpRoutes);
 app.use("/vcdp", vcdpRoutes);
 app.use("/demand", demandRoutes);
 app.use("/lateralHiring", lateralHiringRouter);
-
-const dashboardRoutes = require("./routes/dashboard");
-app.use("/dashboard", dashboardRoutes);
+app.use("/dashboard", require("./routes/dashboard"));
+app.use("/demandselect", demandselectRoutes);
 
 // Start the server
 app.listen(port, () => {
