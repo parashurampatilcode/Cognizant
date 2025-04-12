@@ -3,7 +3,7 @@ const pool = require("../config/db");
 const Demand = {
   getAll: async () => {
     try {
-      const query = 'SELECT * FROM "so_data_1"';
+      const query = 'SELECT * FROM "so_data_temp"';
       const { rows } = await pool.query(query);
       return rows;
     } catch (error) {
@@ -13,6 +13,14 @@ const Demand = {
   },
 
   create: async (demandDataArray) => {
+    // Truncate the table before inserting new data
+    try {
+      await pool.query('TRUNCATE TABLE "so_data_temp"');
+    } catch (error) {
+      console.error("Error truncating table:", error);
+      throw error; // Re-throw the error to prevent further execution
+    }
+
     try {
       const dataArray = Array.isArray(demandDataArray)
         ? demandDataArray
@@ -253,10 +261,9 @@ const Demand = {
 
           // Handle dates
           if (
-            col.toLowerCase().includes("date") ||
-            //col.toLowerCase().includes("_on") ||
-            col === "oe_approver_date" ||
-            col === "tsc_approver_date"
+            col.toLowerCase().includes("date") &&
+            col !== "candidate_name" && // Exclude candidate_name from date handling
+            (col === "oe_approver_date" || col === "tsc_approver_date")
           ) {
             if (!value) return null;
             const date = new Date(value);
@@ -319,7 +326,7 @@ const Demand = {
       });
 
       const query = `
-        INSERT INTO "so_data_1" (${columnNames
+        INSERT INTO "so_data_temp" (${columnNames
           .map((col) => `"${col}"`)
           .join(", ")})
         VALUES ${placeholders.join(", ")}
@@ -327,11 +334,22 @@ const Demand = {
       `;
 
       const { rows } = await pool.query(query, flatValues);
+
       return Array.isArray(demandDataArray) ? rows : rows[0];
     } catch (error) {
       console.error("Error creating Demand record(s):", error);
       console.error("Error details:", error); // Added this line
       throw error;
+    } finally {
+      // Call the stored procedure for DSM Logic (Insert,Update and Archive) after inserting data
+      try {
+        await pool.query("CALL public.dsm_excel_db_load()");
+      } catch (error) {
+        console.error(
+          "Error calling stored procedure: public.dsm_excel_db_load",
+          error
+        );
+      }
     }
   },
 };

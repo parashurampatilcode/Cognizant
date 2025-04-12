@@ -9,7 +9,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from "@mui/material";
+  Autocomplete,
+  TextField,
+} from "@mui/material"; // Import Autocomplete and TextField
 import { styled } from "@mui/material/styles";
 
 import {
@@ -286,24 +288,26 @@ function DemandSupplyMatching() {
           flexWrap: "wrap",
         }}
       >
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel id="parent-customer-label">Parent Customer</InputLabel>
-          <Select
-            labelId="parent-customer-label"
-            id="parent-customer"
-            value={parentCustomer}
-            label="Parent Customer"
-            onChange={handleParentCustomerChange}
-          >
-            <MenuItem value="All">All</MenuItem>
-            {parentCustomerOptions
-              .filter((option) => option !== "All")
-              .map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-          </Select>
+        <FormControl size="small" sx={{ minWidth: 300 }}>
+          <Autocomplete
+            options={parentCustomerOptions} // Options for the dropdown
+            value={parentCustomer} // Current selected value
+            onChange={(event, newValue) => setParentCustomer(newValue)} // Handle selection
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Parent Customer"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase())
+              )
+            } // Filter options based on user input
+            isOptionEqualToValue={(option, value) => option === value} // Ensure proper equality check
+          />
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 150 }}>
