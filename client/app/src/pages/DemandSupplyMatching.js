@@ -17,29 +17,33 @@ import {
   Cancel as CancelIcon,
 } from "@mui/icons-material";
 
+const primaryColor = "#005EB8"; // Cognizant's primary blue
+const darkGrey = "#D3D3D3";
+
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
-  "& .MuiDataGrid-columnHeaders": {
-    backgroundColor: "#E6F0FA",
-    color: "#000000",
-    borderBottom: `2px solid #005EB8`,
-  },
   "& .MuiDataGrid-columnHeader": {
-    padding: theme.spacing(0, 2),
-    fontWeight: 600,
-    "&:hover": {
-      backgroundColor: "#D1E4F9",
+    "& .MuiDataGrid-columnHeaderTitleContainer": {
+      "& .MuiDataGrid-columnHeaderTitle": {
+        fontWeight: "bold !important",
+      },
     },
+    backgroundColor: primaryColor,
+    color: "#FFFFFF !important",
+    fontSize: "0.95rem !important",
+    textTransform: "none",
+    borderBottom: `2px solid ${primaryColor}`,
   },
-  "& .MuiDataGrid-columnHeaderTitle": {
-    fontSize: "0.95rem",
-    letterSpacing: "0.5px",
-    textTransform: "uppercase",
-  },
-  "& .MuiDataGrid-columnSeparator": {
-    color: "#005EB8",
+  "& .MuiDataGrid-root": {
+    overflowX: "auto",
   },
   "& .MuiDataGrid-cell": {
-    borderBottom: `1px solid #D3D3D3`,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    borderBottom: `1px solid ${darkGrey}`,
+  },
+  "& .MuiDataGrid-columnHeaders": {
+    whiteSpace: "nowrap",
   },
 }));
 
