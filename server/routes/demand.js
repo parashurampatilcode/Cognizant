@@ -3,7 +3,7 @@ const router = express.Router();
 const Demand = require("../models/demand");
 const multer = require("multer");
 const xlsx = require("xlsx");
-
+const pool = require("../config/db");
 // Multer configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -69,6 +69,69 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
       error: "Server error",
       details: err.message 
     });
+  }
+});
+
+
+router.get("/skillCountsByMonth", async (req, res) => {
+  try {
+    const { practice, market, offOn, busUnit } = req.query;
+
+    // Validate required parameters
+    if (!practice || !market || !offOn || !busUnit) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const query = "SELECT * FROM get_demand_skill_counts_by_month_pivot_v1($1, $2, $3, $4)";
+    const queryParams = [practice, market, offOn, busUnit];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/top10AccountsCountsByMonth", async (req, res) => {
+  try {
+    const { practice, market, offOn, busUnit } = req.query;
+
+    // Validate required parameters
+    if (!practice || !market || !offOn || !busUnit) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const query = "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v1($1, $2, $3, $4)";
+    const queryParams = [practice, market, offOn, busUnit];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
+  try {
+    const { practice, market, offOn, busUnit } = req.query;
+    // Validate required parameters
+    if (!practice || !market || !offOn || !busUnit ) {
+      return res.status(400).json({ error: "Missing required parameters-" });
+    }
+    //get_demand_top10_accounts_breakup_counts_by_month_pivot_v1($1, $2, $3, $4, $5);
+    const query = "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v1($1, $2, $3, $4)";
+    const queryParams = [practice, market, offOn, busUnit];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
