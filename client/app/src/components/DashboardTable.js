@@ -170,20 +170,19 @@ const DashboardTable = ({ reportData, filterValues }) => {
       "VCDP (A)",
     ].includes(params.colDef.headerName);
     const numericValue = Number(params.value);
-  
-    const isNegative =
+
+    const isNegative = 
       isLastColumn && !isNaN(numericValue) && numericValue < 0;
-  
+
     const highPdp =
       !isLastRow && isMiddleColumn && !isNaN(numericValue) && numericValue > 10;
-  
-    return `${isLastRow ? "last-row" : ""} 
+
+    return `${isLastRow ? "last-row" : ""}
             ${isFirstColumn ? "first-column" : ""}
             ${isLastColumn ? "last-column" : ""}
-            ${highPdp ? "high-pdp" : ""} 
+            ${highPdp ? "high-pdp" : ""}
             ${isNegative ? "negative-value" : ""}`.trim();
   };
-
 
   const handleExportExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(rows);
