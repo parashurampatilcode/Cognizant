@@ -1,4 +1,6 @@
-// c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\components\DashboardTable.js
+import ExportIcon from "./ExportIcon";
+
+
 import React, { useState, useRef, useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { lighten, styled } from "@mui/material/styles";
@@ -17,6 +19,7 @@ import {
   Image,
   ContentCopy,
   Close as CloseIcon,
+  TableView,
 } from "@mui/icons-material";
 import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
@@ -85,7 +88,7 @@ const StyledClickableCell = styled("div")(({ theme }) => ({
   },
 }));
 
-const DashboardTable = ({ reportData, filterValues }) => {
+const DemandViewTable = ({ reportData, filterValues, tableName }) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [openPopup, setOpenPopup] = useState(false);
@@ -104,12 +107,43 @@ const DashboardTable = ({ reportData, filterValues }) => {
         minWidth: 150,
         flex: 1,
         renderCell: (params) =>
-          index === 0 ? (
+          index === 0 && tableName === 'Top10Accounts' ? (
             <StyledClickableCell>{params.value}</StyledClickableCell>
           ) : (
             params.value
           ),
-        cellClassName: (params) => getCellClassName(params, reportData, index),
+        cellClassName: (params) => {
+          const isLastRow = params.row.id === reportData.length;
+          const isFirstColumn = index === 0;
+          const isLastColumn = index === Object.keys(reportData[0]).length - 1;
+        //   const isMiddleColumn = [
+        //     "Pdp",
+        //     "PDP (PA-)",
+        //     "PDP (A+)",
+        //     "Vcdp",
+        //     "VCDP (PA-)",
+        //     "VCDP (A)",
+        //   ].includes(params.colDef.headerName);
+          const numericValue = Number(params.value);
+
+          const isNegative =
+            !isLastRow &&
+            isLastColumn &&
+            !isNaN(numericValue) &&
+            numericValue < 0;
+
+          const highPdp =
+            !isLastRow &&
+         //   isMiddleColumn &&
+            !isNaN(numericValue) &&
+            numericValue > 10;
+
+          return `${isLastRow ? "last-row" : ""} 
+            ${isFirstColumn ? "first-column" : ""}
+            ${isLastColumn ? "last-column" : ""}
+            ${highPdp ? "high-pdp" : ""} 
+            ${isNegative ? "negative-value" : ""}`.trim();
+        },
       }));
       setColumns(cols);
       setRows(reportData.map((row, index) => ({ ...row, id: index + 1 })));
@@ -119,23 +153,24 @@ const DashboardTable = ({ reportData, filterValues }) => {
   const handleCellClick = async (params) => {
     if (params.field === columns[0].field) {
       const cellValue = params.value;
-      setPopupTitle(`Demand Supply Dashboard - Skill : ${cellValue}`);
+      setPopupTitle(`Demand Detailed View Dashboard - Account Name : ${cellValue}`);
       setFilterContext({
         practice: filterValues.practice,
         market: filterValues.market,
         offOn: filterValues.offOn,
-        skill: columns[0].headerName,
+        busUnit: filterValues.busUnit,
         value: cellValue,
       });
       try {
         const response = await axios.get(
-          `http://localhost:5000/dashboard/detailview`,
+          `http://localhost:5000/demand/top10AccountsBreakUpCountsByMonth`,
           {
             params: {
               practice: filterValues.practice,
               market: filterValues.market,
               offOn: filterValues.offOn,
-              skill: cellValue,
+              busUnit : filterValues.busUnit,
+              accountName: cellValue,
             },
           }
         );
@@ -144,7 +179,40 @@ const DashboardTable = ({ reportData, filterValues }) => {
           field: key,
           headerName: key.replace(/_/g, " ").toUpperCase(),
           flex: 1,
-          cellClassName: (params) => getCellClassName(params, data, index),
+          cellClassName: (params) => {
+            const isLastRow = params.row.id === data.length;
+            const isLastColumn = index === Object.keys(data[0]).length - 1;
+            // const isMiddleColumn = [
+            //   "Pdp",
+            //   "PDP (PA-)",
+            //   "PDP (A+)",
+            //   "Vcdp",
+            //   "VCDP (PA-)",
+            //   "VCDP (A)",
+            // ].some((header) =>
+            //   params.colDef.headerName
+            //     .toUpperCase()
+            //     .includes(header.toUpperCase())
+            // );
+            const numericValue = Number(params.value);
+
+            const isNegative =
+              !isLastRow &&
+              isLastColumn &&
+              !isNaN(numericValue) &&
+              numericValue < 0;
+
+            const highPdp =
+              !isLastRow &&
+            //  isMiddleColumn &&
+              !isNaN(numericValue) &&
+              numericValue > 10;
+
+            return `${isLastRow ? "last-row" : ""} 
+              ${isLastColumn ? "last-column" : ""}
+              ${highPdp ? "high-pdp" : ""}               
+              ${isNegative ? "negative-value" : ""}`.trim();
+          },
         }));
         setPopupData({
           rows: data.map((row, index) => ({ ...row, id: index + 1 })),
@@ -157,100 +225,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
     }
   };
 
-  const getCellClassName = (params, reportData, index) => {
-    const isLastRow = params.row.id === reportData.length;
-    const isFirstColumn = index === 0;
-    const isLastColumn = index === Object.keys(reportData[0]).length - 1;
-    const isMiddleColumn = [
-      "Pdp",
-      "PDP (PA-)",
-      "PDP (A+)",
-      "Vcdp",
-      "VCDP (PA-)",
-      "VCDP (A)",
-    ].includes(params.colDef.headerName);
-    const numericValue = Number(params.value);
-
-    const isNegative = isLastColumn && !isNaN(numericValue) && numericValue < 0;
-
-    const highPdp =
-      !isLastRow && isMiddleColumn && !isNaN(numericValue) && numericValue > 10;
-
-    return `${isLastRow ? "last-row" : ""}
-            ${isFirstColumn ? "first-column" : ""}
-            ${isLastColumn ? "last-column" : ""}
-            ${highPdp ? "high-pdp" : ""}
-            ${isNegative ? "negative-value" : ""}`.trim();
-  };
-
-  const handleExportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Dashboard Data");
-    XLSX.writeFile(workbook, "dashboard_data.xlsx");
-  };
-
-  const handleExportImage = async () => {
-    if (tableRef.current) {
-      try {
-        const dataUrl = await htmlToImage.toPng(tableRef.current);
-        const link = document.createElement("a");
-        link.download = "dashboard_table.png";
-        link.href = dataUrl;
-        link.click();
-      } catch (error) {
-        console.error("Error exporting image:", error);
-      }
-    }
-  };
-
-  const handleCopyData = async () => {
-    try {
-      const data = rows.map((row) => {
-        const rowData = {};
-        columns.forEach((col) => {
-          rowData[col.headerName] = row[col.field];
-        });
-        return rowData;
-      });
-      await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
-      alert("Data copied to clipboard!");
-    } catch (err) {
-      console.error("Error copying data:", err);
-    }
-  };
-
-  const handleExportPopupExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(popupData.rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Popup Data");
-    XLSX.writeFile(workbook, "popup_data.xlsx");
-  };
-
-  const handleExportPopupImage = async () => {
-    if (popupTableRef.current) {
-      try {
-        const dataUrl = await htmlToImage.toPng(popupTableRef.current);
-        const link = document.createElement("a");
-        link.download = "popup_table.png";
-        link.href = dataUrl;
-        link.click();
-      } catch (error) {
-        console.error("Error exporting popup image:", error);
-      }
-    }
-  };
-
-  const handleCopyPopupData = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        JSON.stringify(popupData.rows, null, 2)
-      );
-      alert("Popup data copied to clipboard!");
-    } catch (error) {
-      console.error("Error copying popup data:", error);
-    }
-  };
+  
 
   return (
     <Box sx={{ position: "relative" }}>
@@ -265,27 +240,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
           padding: 1,
         }}
       >
-        <IconButton
-          onClick={handleExportExcel}
-          title="Export Excel"
-          sx={{ color: primaryColor }}
-        >
-          <FileDownload />
-        </IconButton>
-        <IconButton
-          onClick={handleExportImage}
-          title="Export Image"
-          sx={{ color: primaryColor }}
-        >
-          <Image />
-        </IconButton>
-        <IconButton
-          onClick={handleCopyData}
-          title="Copy Data"
-          sx={{ color: primaryColor }}
-        >
-          <ContentCopy />
-        </IconButton>
+        <ExportIcon exportRows = {rows} exportColumns = {columns} exportTableRef={tableRef} reportName = 'DemandView' />
       </Box>
 
       <div
@@ -374,7 +329,15 @@ const DashboardTable = ({ reportData, filterValues }) => {
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
                   <Typography component="span" sx={{ fontWeight: "bold" }}>
-                    Skill:
+                    Business Unit:
+                  </Typography>
+                  <Typography component="span">
+                    {filterContext.busUnit}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                  <Typography component="span" sx={{ fontWeight: "bold" }}>
+                    Account Name:
                   </Typography>
                   <Typography component="span">
                     {filterContext.value}
@@ -396,27 +359,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
                 padding: 1,
               }}
             >
-              <IconButton
-                onClick={handleExportPopupExcel}
-                title="Export Excel"
-                sx={{ color: primaryColor }}
-              >
-                <FileDownload />
-              </IconButton>
-              <IconButton
-                onClick={handleExportPopupImage}
-                title="Export Image"
-                sx={{ color: primaryColor }}
-              >
-                <Image />
-              </IconButton>
-              <IconButton
-                onClick={handleCopyPopupData}
-                title="Copy Data"
-                sx={{ color: primaryColor }}
-              >
-                <ContentCopy />
-              </IconButton>
+              <ExportIcon exportRows = {rows} exportColumns = {columns} exportTableRef={tableRef} reportName = 'DemandView_PopUp' />
             </Box>
 
             <Box
@@ -438,6 +381,16 @@ const DashboardTable = ({ reportData, filterValues }) => {
                   "& .MuiDataGrid-virtualScroller": {
                     overflow: "auto !important",
                   },
+                  "& .MuiDataGrid-columnHeader": {
+                    backgroundColor: primaryColor,
+                    color: "#FFFFFF !important",
+                  },
+                  "& .last-row": {
+                    backgroundColor: lighten(primaryColor, 0.85),
+                  },
+                  "& .last-column": {
+                    backgroundColor: lighten(primaryColor, 0.85),
+                  },
                 }}
               />
             </Box>
@@ -453,4 +406,4 @@ const DashboardTable = ({ reportData, filterValues }) => {
   );
 };
 
-export default DashboardTable;
+export default DemandViewTable;
