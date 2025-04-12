@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 router.get("/parentCustomers", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT parent_customer FROM so_data_1 WHERE parent_customer IS NOT NULL ORDER BY parent_customer ASC";
+      "SELECT DISTINCT parent_customer FROM so_data_1 WHERE parent_customer IS NOT NULL ORDER BY parent_customer ASC;";
     const { rows } = await pool.query(query);
     console.log("Parent Customers:", rows); // Debugging log
     res.json(rows.map((row) => row.parent_customer));
