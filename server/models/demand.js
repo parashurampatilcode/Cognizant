@@ -14,12 +14,12 @@ const Demand = {
 
   create: async (demandDataArray) => {
     // Truncate the table before inserting new data
-    try {
+    /*try {
       await pool.query('TRUNCATE TABLE "so_data_temp"');
     } catch (error) {
       console.error("Error truncating table:", error);
       throw error; // Re-throw the error to prevent further execution
-    }
+    }*/
 
     try {
       const dataArray = Array.isArray(demandDataArray)
@@ -342,14 +342,14 @@ const Demand = {
       throw error;
     } finally {
       // Call the stored procedure for DSM Logic (Insert,Update and Archive) after inserting data
-      try {
+      /* try {
         await pool.query("CALL public.dsm_excel_db_load()");
       } catch (error) {
         console.error(
           "Error calling stored procedure: public.dsm_excel_db_load",
           error
         );
-      }
+      }*/
     }
   },
 };

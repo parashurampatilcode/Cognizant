@@ -324,7 +324,7 @@ function App() {
           onClick={() => handlePageChange("maintenance")}
         />
       </Box>
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth={false} sx={{ padding: 0, margin: 0, marginTop: 4 }}>
         {renderPage()}
       </Container>
     </Box>
