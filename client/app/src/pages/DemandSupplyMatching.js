@@ -56,6 +56,19 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeaders": {
     whiteSpace: "nowrap",
   },
+  "& .MuiDataGrid-cell--editable": {
+    backgroundColor: "#FFFDE7", // Light yellow background for editable cells
+    "&:hover": {
+      backgroundColor: "#FFF9C4", // Slightly darker yellow on hover
+    },
+  },
+  "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell--editable": {
+    backgroundColor: "#FFF59D !important", // Yellow background for editable cells
+  },
+  "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell:not(.MuiDataGrid-cell--editable)":
+    {
+      backgroundColor: "#E0E0E0 !important", // Grey background for non-editable cells
+    },
 }));
 
 function DemandSupplyMatching() {
@@ -74,6 +87,25 @@ function DemandSupplyMatching() {
   const [buDescOptions, setBuDescOptions] = useState([]);
   const [pdlNameOptions, setPdlNameOptions] = useState([]);
   const [offOnOptions, setOffOnOptions] = useState([]);
+
+  const editableColumns = [
+    "DemandType",
+    "DemandStatus",
+    "FulfilmentPlan",
+    "DemandCategory",
+    "SupplySource",
+    "RotationSO",
+    "SupplyAccount",
+    "IdentifiedAssoIdextCandidate",
+    "Identified_assoc_name",
+    "Grades",
+    "EffMonth",
+    "JoiningAllocationDate",
+    "AllocationWeek",
+    "IncludedInForecast",
+    "CrossSkillRequired",
+    "RemarksDetails",
+  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -113,7 +145,7 @@ function DemandSupplyMatching() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await api.get("/demandselect"); // Use the configured Axios instance
+        const response = await api.get("/demandselect");
         setData(response.data);
 
         if (response.data.length > 0) {
@@ -123,9 +155,7 @@ function DemandSupplyMatching() {
             width: 150,
           }));
 
-          // Add actions column
           cols = [
-            ...cols,
             {
               field: "actions",
               type: "actions",
@@ -146,7 +176,6 @@ function DemandSupplyMatching() {
                     <GridActionsCellItem
                       icon={<CancelIcon />}
                       label="Cancel"
-                      className="textPrimary"
                       onClick={handleCancelClick(id)}
                       color="inherit"
                     />,
@@ -157,7 +186,6 @@ function DemandSupplyMatching() {
                   <GridActionsCellItem
                     icon={<EditIcon />}
                     label="Edit"
-                    className="textPrimary"
                     onClick={handleEditClick(id)}
                     color="inherit"
                   />,
@@ -170,7 +198,9 @@ function DemandSupplyMatching() {
                 ];
               },
             },
+            ...cols,
           ];
+
           setColumns(cols);
         }
       } catch (error) {
@@ -179,16 +209,36 @@ function DemandSupplyMatching() {
     };
 
     fetchData();
-  }, [rowModesModel]);
+  }, []); // Ensure this runs only once on component mount
 
   const handleEditClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: "edit" } });
+    setRowModesModel((prevModel) => ({
+      ...prevModel,
+      [id]: { mode: "edit" },
+    }));
   };
 
-  const handleSaveClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: "view" } });
-    // Here you would typically make an API call to save the changes to the server
-    console.log(`Saving row with id ${id}`);
+  const handleSaveClick = (id) => async () => {
+    const updatedRow = data.find((row) => row.item_id === id);
+    const payload = {
+      SoId: updatedRow.SoId,
+      SOLineStatus: updatedRow.SOLineStatus,
+      ...editableColumns.reduce((acc, col) => {
+        acc[col] = updatedRow[col];
+        return acc;
+      }, {}),
+    };
+
+    try {
+      await api.post("/demand/update", payload);
+      setRowModesModel((prevModel) => ({
+        ...prevModel,
+        [id]: { mode: "view" },
+      }));
+      console.log(`Row with id ${id} saved successfully.`);
+    } catch (error) {
+      console.error("Error saving row:", error);
+    }
   };
 
   const handleDeleteClick = (id) => () => {
@@ -197,13 +247,14 @@ function DemandSupplyMatching() {
   };
 
   const handleCancelClick = (id) => () => {
-    setRowModesModel({
-      ...rowModesModel,
+    setRowModesModel((prevModel) => ({
+      ...prevModel,
       [id]: { mode: "view", ignoreModifications: true },
-    });
-    const editedRow = data.find((row) => row.ID === id);
-    if (editedRow.isNew) {
-      setData(data.filter((row) => row.ID !== id));
+    }));
+
+    const editedRow = data.find((row) => row.item_id === id);
+    if (editedRow?.isNew) {
+      setData(data.filter((row) => row.item_id !== id));
     }
   };
 
@@ -224,16 +275,48 @@ function DemandSupplyMatching() {
     return filteredData;
   }, [data, columns, searchText]);
 
-  const processRowUpdate = (newRow) => {
+  const processRowUpdate = async (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
-    setData(data.map((row) => (row.ID === newRow.ID ? updatedRow : row)));
+
+    try {
+      const payload = {
+        SoId: updatedRow.SoId,
+        SOLineStatus: updatedRow.SOLineStatus,
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
+      };
+
+      // Call the API to save the updated row
+      await api.post("/demand/update", payload);
+      console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
+
+      // Update the data state with the updated row
+      setData((prevData) =>
+        prevData.map((row) =>
+          row.item_id === updatedRow.item_id ? updatedRow : row
+        )
+      );
+    } catch (error) {
+      console.error("Error saving row:", error);
+      throw error; // Re-throw the error to prevent the row from being updated in the UI
+    }
+
     return updatedRow;
   };
 
+  const handleRowEditStart = (params, event) => {
+    event.defaultMuiPrevented = true; // Prevent default behavior
+  };
+
   const handleRowEditStop = (params, event) => {
-    if (params.reason === "rowFocusOut") {
-      event.defaultMuiPrevented = true;
-    }
+    event.defaultMuiPrevented = true; // Prevent default behavior
+  };
+
+  // Add visual feedback for the row being edited
+  const getRowClassName = (params) => {
+    return rowModesModel[params.id]?.mode === "edit" ? "row-editing" : "";
   };
 
   const handleParentCustomerChange = (event) => {
@@ -271,7 +354,7 @@ function DemandSupplyMatching() {
   return (
     <Box sx={{ width: "100%" }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
-        Demand Supply Matching
+        Demand Supply Mapping
       </Typography>
 
       <Box
@@ -398,7 +481,10 @@ function DemandSupplyMatching() {
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
-          columns={columns}
+          columns={columns.map((col) => ({
+            ...col,
+            editable: editableColumns.includes(col.field), // Enable editing for specific columns
+          }))}
           pageSize={10}
           rowsPerPageOptions={[10, 25, 50]}
           disableVirtualization
@@ -418,8 +504,15 @@ function DemandSupplyMatching() {
           getRowId={(row) => row.item_id} // Use item_id as the unique identifier
           editMode="row"
           rowModesModel={rowModesModel}
+          onRowEditStart={handleRowEditStart}
           onRowEditStop={handleRowEditStop}
-          processRowUpdate={processRowUpdate}
+          processRowUpdate={processRowUpdate} // Use the updated function
+          getRowClassName={getRowClassName} // Apply row class for visual feedback
+          sx={{
+            "& .row-editing": {
+              backgroundColor: "#FFF3E0", // Highlight color for editing rows
+            },
+          }}
         />
       </div>
     </Box>
