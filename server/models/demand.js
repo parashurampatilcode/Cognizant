@@ -354,4 +354,29 @@ const Demand = {
   },
 };
 
+const express = require("express");
+const app = express();
+
+app.get("/demandselect/report", async (req, res) => {
+  const { parentCustomer, buDesc, pdlName, offOn } = req.query;
+
+  try {
+    const query = `
+      SELECT * FROM public.demandselectnewpp($1, $2, $3, $4)
+    `;
+    const queryParams = [
+      parentCustomer === "null" ? null : parentCustomer,
+      buDesc === "null" ? null : buDesc,
+      pdlName === "null" ? null : pdlName,
+      offOn === "null" ? null : offOn,
+    ];
+
+    const results = await pool.query(query, queryParams);
+    res.json(results.rows);
+  } catch (error) {
+    console.error("Error fetching report data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = Demand;

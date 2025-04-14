@@ -11,6 +11,7 @@ import {
   MenuItem,
   Autocomplete,
   TextField,
+  Button, // Import Button component
 } from "@mui/material"; // Import Autocomplete and TextField
 import { styled } from "@mui/material/styles";
 
@@ -90,11 +91,6 @@ function DemandSupplyMatching() {
           api.get("/demandselect/pdlNames"), // Use the configured Axios instance
           api.get("/demandselect/offOns"), // Use the configured Axios instance
         ]);
-
-        //console.log("Parent Customers:", parentCustomerResponse.data); // Debugging log
-        //console.log("Business Unit Descriptions:", buDescResponse.data); // Debugging log
-        //console.log("PDL Names:", pdlNameResponse.data); // Debugging log
-        //console.log("Off/On Values:", offOnResponse.data); // Debugging log
 
         if (isMounted) {
           setParentCustomerOptions(["All", ...parentCustomerResponse.data]);
@@ -214,23 +210,6 @@ function DemandSupplyMatching() {
   const filteredRows = useMemo(() => {
     let filteredData = data;
 
-    if (parentCustomer !== "All") {
-      filteredData = filteredData.filter(
-        (row) => row.parent_customer === parentCustomer
-      );
-    }
-    if (buDesc !== "All") {
-      filteredData = filteredData.filter(
-        (row) => row.businessunit_desc === buDesc
-      );
-    }
-    if (pdlName !== "All") {
-      filteredData = filteredData.filter((row) => row.pdl_name === pdlName);
-    }
-    if (offOn !== "All") {
-      filteredData = filteredData.filter((row) => row.off_on === offOn);
-    }
-
     if (searchText) {
       const lowerSearchText = searchText.toLowerCase();
       filteredData = filteredData.filter((row) =>
@@ -243,7 +222,7 @@ function DemandSupplyMatching() {
     }
 
     return filteredData;
-  }, [data, columns, searchText, parentCustomer, buDesc, pdlName, offOn]);
+  }, [data, columns, searchText]);
 
   const processRowUpdate = (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
@@ -271,6 +250,22 @@ function DemandSupplyMatching() {
 
   const handleOffOnChange = (event) => {
     setOffOn(event.target.value);
+  };
+
+  const handleViewReport = async () => {
+    try {
+      const params = {
+        parentCustomer: parentCustomer === "All" ? "null" : parentCustomer,
+        buDesc: buDesc === "All" ? "null" : buDesc,
+        pdlName: pdlName === "All" ? "null" : pdlName,
+        offOn: offOn === "All" ? "null" : offOn,
+      };
+
+      const response = await api.get("/demandselect/report", { params });
+      setData(response.data);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
+    }
   };
 
   return (
@@ -310,24 +305,26 @@ function DemandSupplyMatching() {
           />
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel id="bu-desc-label">Business Unit</InputLabel>
-          <Select
-            labelId="bu-desc-label"
-            id="bu-desc"
-            value={buDesc}
-            label="Business Unit"
-            onChange={handleBuDescChange}
-          >
-            <MenuItem value="All">All</MenuItem>
-            {buDescOptions
-              .filter((option) => option !== "All")
-              .map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-          </Select>
+        <FormControl size="small" sx={{ minWidth: 300 }}>
+          <Autocomplete
+            options={buDescOptions} // Options for the dropdown
+            value={buDesc} // Current selected value
+            onChange={(event, newValue) => setBuDesc(newValue)} // Handle selection
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Business Unit"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase())
+              )
+            } // Filter options based on user input
+            isOptionEqualToValue={(option, value) => option === value} // Ensure proper equality check
+          />
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -371,6 +368,15 @@ function DemandSupplyMatching() {
         </FormControl>
       </Box>
 
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleViewReport}
+        sx={{ mb: 2 }}
+      >
+        View Report
+      </Button>
+
       <InputBase
         type="text"
         placeholder="Global Search..."
@@ -409,7 +415,7 @@ function DemandSupplyMatching() {
               </GridToolbarContainer>
             ),
           }}
-          getRowId={(row) => row.ID}
+          getRowId={(row) => row.item_id} // Use item_id as the unique identifier
           editMode="row"
           rowModesModel={rowModesModel}
           onRowEditStop={handleRowEditStop}
