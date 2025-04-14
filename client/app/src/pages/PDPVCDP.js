@@ -2,9 +2,7 @@
 
 import React,  { useState } from "react";
 import { Typography, Box } from "@mui/material";
-import StyledDataGrid from "../components/PDPVCDPSupplyTable";
 import FilterControlsPDPVCDP from "../components/FilterControlsPDPVCDP";
-import StyledTable from "../components/PDPVCDPSupplyTable";
 import PDPVCDPSupplyTable from "../components/PDPVCDPSupplyTable";
 
 
@@ -23,7 +21,7 @@ const handleReportData = (data) => {
     'EI A+ PDP',
     'EI P* PDP',
     'DPO A+ PDP',
-    'DPO P* PDP'
+    'DPO P* PDP' 
     ];
     
     const vcdpTableNames = [
@@ -44,7 +42,7 @@ const handleReportData = (data) => {
             mb: 2,
           }}
         >
-        <Typography variant="h4">PDP & VCDP - Work in Progress</Typography>
+        <Typography variant="h4">PDP & VCDP Details</Typography>
         </Box>
         <FilterControlsPDPVCDP onReportData={handleReportData} />
         {pdpReportDatas && (
