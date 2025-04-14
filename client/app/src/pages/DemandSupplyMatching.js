@@ -155,52 +155,6 @@ function DemandSupplyMatching() {
             width: 150,
           }));
 
-          cols = [
-            {
-              field: "actions",
-              type: "actions",
-              headerName: "Actions",
-              width: 100,
-              cellClassName: "actions",
-              getActions: ({ id }) => {
-                const isInEditMode = rowModesModel[id]?.mode === "edit";
-
-                if (isInEditMode) {
-                  return [
-                    <GridActionsCellItem
-                      icon={<SaveIcon />}
-                      label="Save"
-                      onClick={handleSaveClick(id)}
-                      color="primary"
-                    />,
-                    <GridActionsCellItem
-                      icon={<CancelIcon />}
-                      label="Cancel"
-                      onClick={handleCancelClick(id)}
-                      color="inherit"
-                    />,
-                  ];
-                }
-
-                return [
-                  <GridActionsCellItem
-                    icon={<EditIcon />}
-                    label="Edit"
-                    onClick={handleEditClick(id)}
-                    color="inherit"
-                  />,
-                  <GridActionsCellItem
-                    icon={<DeleteIcon />}
-                    label="Delete"
-                    onClick={handleDeleteClick(id)}
-                    color="inherit"
-                  />,
-                ];
-              },
-            },
-            ...cols,
-          ];
-
           setColumns(cols);
         }
       } catch (error) {
@@ -351,6 +305,55 @@ function DemandSupplyMatching() {
     }
   };
 
+  const columnsWithActions = useMemo(
+    () => [
+      {
+        field: "actions",
+        type: "actions",
+        headerName: "Actions",
+        width: 100,
+        cellClassName: "actions",
+        getActions: ({ id }) => {
+          const isInEditMode = rowModesModel[id]?.mode === "edit";
+
+          if (isInEditMode) {
+            return [
+              <GridActionsCellItem
+                icon={<SaveIcon />}
+                label="Save"
+                onClick={handleSaveClick(id)}
+                color="primary"
+              />,
+              <GridActionsCellItem
+                icon={<CancelIcon />}
+                label="Cancel"
+                onClick={handleCancelClick(id)}
+                color="inherit"
+              />,
+            ];
+          }
+
+          return [
+            <GridActionsCellItem
+              icon={<EditIcon />}
+              label="Edit"
+              onClick={handleEditClick(id)}
+              color="inherit"
+            />,
+            <GridActionsCellItem
+              icon={<DeleteIcon />}
+              label="Delete"
+              onClick={handleDeleteClick(id)}
+              color="inherit"
+            />,
+          ];
+        },
+      },
+      ...columns,
+    ],
+    [columns, rowModesModel, data]
+  );
+
   return (
     <Box sx={{ width: "100%" }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
@@ -481,7 +484,7 @@ function DemandSupplyMatching() {
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
-          columns={columns.map((col) => ({
+          columns={columnsWithActions.map((col) => ({
             ...col,
             editable: editableColumns.includes(col.field), // Enable editing for specific columns
           }))}
