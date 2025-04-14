@@ -1,6 +1,5 @@
 import ExportIcon from "./ExportIcon";
 
-
 import React, { useState, useRef, useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { lighten, styled } from "@mui/material/styles";
@@ -107,7 +106,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
         minWidth: 150,
         flex: 1,
         renderCell: (params) =>
-          index === 0 && tableName === 'Top10Accounts' ? (
+          index === 0 && tableName === "Top10Accounts" ? (
             <StyledClickableCell>{params.value}</StyledClickableCell>
           ) : (
             params.value
@@ -116,14 +115,14 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
           const isLastRow = params.row.id === reportData.length;
           const isFirstColumn = index === 0;
           const isLastColumn = index === Object.keys(reportData[0]).length - 1;
-        //   const isMiddleColumn = [
-        //     "Pdp",
-        //     "PDP (PA-)",
-        //     "PDP (A+)",
-        //     "Vcdp",
-        //     "VCDP (PA-)",
-        //     "VCDP (A)",
-        //   ].includes(params.colDef.headerName);
+          //   const isMiddleColumn = [
+          //     "Pdp",
+          //     "PDP (PA-)",
+          //     "PDP (A+)",
+          //     "Vcdp",
+          //     "VCDP (PA-)",
+          //     "VCDP (A)",
+          //   ].includes(params.colDef.headerName);
           const numericValue = Number(params.value);
 
           const isNegative =
@@ -134,7 +133,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
 
           const highPdp =
             !isLastRow &&
-         //   isMiddleColumn &&
+            //   isMiddleColumn &&
             !isNaN(numericValue) &&
             numericValue > 10;
 
@@ -153,7 +152,9 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
   const handleCellClick = async (params) => {
     if (params.field === columns[0].field) {
       const cellValue = params.value;
-      setPopupTitle(`Demand Detailed View Dashboard - Account Name : ${cellValue}`);
+      setPopupTitle(
+        `Demand Detailed View Dashboard - Account Name : ${cellValue}`
+      );
       setFilterContext({
         practice: filterValues.practice,
         market: filterValues.market,
@@ -169,7 +170,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
               practice: filterValues.practice,
               market: filterValues.market,
               offOn: filterValues.offOn,
-              busUnit : filterValues.busUnit,
+              busUnit: filterValues.busUnit,
               accountName: cellValue,
             },
           }
@@ -204,7 +205,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
 
             const highPdp =
               !isLastRow &&
-            //  isMiddleColumn &&
+              //  isMiddleColumn &&
               !isNaN(numericValue) &&
               numericValue > 10;
 
@@ -225,8 +226,6 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
     }
   };
 
-  
-
   return (
     <Box sx={{ position: "relative" }}>
       <Box
@@ -240,7 +239,12 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
           padding: 1,
         }}
       >
-        <ExportIcon exportRows = {rows} exportColumns = {columns} exportTableRef={tableRef} reportName = 'DemandView' />
+        <ExportIcon
+          exportRows={rows}
+          exportColumns={columns}
+          exportTableRef={tableRef}
+          reportName="DemandView"
+        />
       </Box>
 
       <div
@@ -359,7 +363,12 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
                 padding: 1,
               }}
             >
-              <ExportIcon exportRows = {rows} exportColumns = {columns} exportTableRef={tableRef} reportName = 'DemandView_PopUp' />
+              <ExportIcon
+                exportRows={rows}
+                exportColumns={columns}
+                exportTableRef={tableRef}
+                reportName="DemandView_PopUp"
+              />
             </Box>
 
             <Box
