@@ -152,4 +152,61 @@ router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
   }
 });
 
+router.post("/update", async (req, res) => {
+  const {
+    SoId,
+    SOLineStatus,
+    DemandType,
+    DemandStatus,
+    FulfilmentPlan,
+    DemandCategory,
+    SupplySource,
+    RotationSO,
+    SupplyAccount,
+    IdentifiedAssoIdextCandidate,
+    Identified_assoc_name,
+    Grades,
+    EffMonth,
+    JoiningAllocationDate,
+    AllocationWeek,
+    IncludedInForecast,
+    CrossSkillRequired,
+    RemarksDetails,
+  } = req.body;
+
+  try {
+    const query = `
+      CALL public.demand_update(
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+      )
+    `;
+    const params = [
+      SoId,
+      SOLineStatus,
+      DemandType,
+      DemandStatus,
+      FulfilmentPlan,
+      DemandCategory,
+      SupplySource,
+      RotationSO,
+      SupplyAccount,
+      IdentifiedAssoIdextCandidate,
+      Identified_assoc_name,
+      Grades,
+      EffMonth,
+      JoiningAllocationDate,
+      AllocationWeek,
+      IncludedInForecast,
+      CrossSkillRequired,
+      RemarksDetails,
+    ];
+
+    await pool.query(query, params);
+    res.status(200).json({ message: "Row updated successfully." });
+  } catch (error) {
+    console.error("Error updating demand:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

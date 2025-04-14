@@ -18,7 +18,7 @@ router.get("/parentCustomers", async (req, res) => {
     const query =
       "SELECT DISTINCT parent_customer FROM so_data_main WHERE parent_customer IS NOT NULL ORDER BY parent_customer ASC;";
     const { rows } = await pool.query(query);
-    console.log("Parent Customers:", rows); // Debugging log
+
     res.json(rows.map((row) => row.parent_customer));
   } catch (error) {
     console.error("Error fetching parent customers:", error);
@@ -31,7 +31,7 @@ router.get("/businessUnitDescs", async (req, res) => {
     const query =
       "SELECT DISTINCT businessunit_desc FROM so_data_main WHERE businessunit_desc IS NOT NULL ORDER BY businessunit_desc ASC";
     const { rows } = await pool.query(query);
-    console.log("Business Unit Descriptions:", rows); // Debugging log
+
     res.json(rows.map((row) => row.businessunit_desc));
   } catch (error) {
     console.error("Error fetching business unit descriptions:", error);
@@ -44,7 +44,7 @@ router.get("/pdlNames", async (req, res) => {
     const query =
       "SELECT DISTINCT pdl_name FROM so_data_main WHERE pdl_name IS NOT NULL ORDER BY pdl_name ASC";
     const { rows } = await pool.query(query);
-    console.log("PDL Names:", rows); // Debugging log
+
     res.json(rows.map((row) => row.pdl_name));
   } catch (error) {
     console.error("Error fetching PDL names:", error);
@@ -57,7 +57,7 @@ router.get("/offOns", async (req, res) => {
     const query =
       "SELECT DISTINCT off_on FROM so_data_main WHERE off_on IS NOT NULL ORDER BY off_on ASC";
     const { rows } = await pool.query(query);
-    console.log("Off/On Values:", rows); // Debugging log
+
     res.json(rows.map((row) => row.off_on));
   } catch (error) {
     console.error("Error fetching Off/On values:", error);
