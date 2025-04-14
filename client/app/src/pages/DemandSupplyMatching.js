@@ -64,6 +64,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell--editable": {
     backgroundColor: "#FFF59D !important", // Yellow background for editable cells
+    border: "1px solid #005EB8", // Add a border
   },
   "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell:not(.MuiDataGrid-cell--editable)":
     {
