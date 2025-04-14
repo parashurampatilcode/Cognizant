@@ -20,6 +20,7 @@ import Admin from "./pages/Admin";
 import Reports from "./pages/Reports";
 import Maintenance from "./pages/Maintenance";
 import ExcelImport from "./components/ExcelImport";
+import PDPVCDP from "./pages/PDPVCDP";
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
@@ -159,7 +160,8 @@ function App() {
         return <Dashboard />;
       case "detailedView":
         return <DemandView />;
-      case "pdp":
+      case "pdpvcdp":
+        return <PDPVCDP />;
       case "vcdp":
       case "lateralHiring":
       case "rotation":
@@ -258,8 +260,8 @@ function App() {
         <MenuWrapper
           buttonText="Supply View"
           isActive={[
-            "pdp",
-            "vcdp",
+            "pdpvcdp",
+            //"vcdp",
             "lateralHiring",
             "rotation",
             "nbl",
@@ -271,8 +273,8 @@ function App() {
           onMenuClose={handleMenuClose}
         >
           {[
-            { label: "PDP", value: "pdp" },
-            { label: "VCDP", value: "vcdp" },
+            { label: "PDP & VCDP", value: "pdpvcdp" },
+            //{ label: "VCDP", value: "vcdp" },
             { label: "Lateral Hiring", value: "lateralHiring" },
             { label: "Rotation", value: "rotation" },
             { label: "NBL", value: "nbl" },
