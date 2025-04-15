@@ -18,7 +18,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     },
     backgroundColor: primaryColor,
     color: "#FFFFFF !important",
-    fontSize: "0.7rem !important", // Reduced font size
+    fontSize: "0.8rem !important", // Reduced font size
     textTransform: "none",
     borderBottom: `2px solid ${primaryColor}`,
     whiteSpace: "normal",
@@ -41,11 +41,11 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     backgroundColor: "#FF4D4D",
     color: "#fff",
   },
-  "& .high-pdp": {
-    fontWeight: "bold",
-    backgroundColor: "#FFC107",
-    color: "#000",
-  },
+  // "& .high-pdp": {
+  //   fontWeight: "bold",
+  //   backgroundColor: "#FFC107",
+  //   color: "#000",
+  // },
   "& .MuiDataGrid-root": {
     overflowX: "auto",
   },
@@ -54,7 +54,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     overflow: "hidden",
     textOverflow: "ellipsis",
     borderBottom: `1px solid ${darkGrey}`,
-    fontSize: "0.7rem",
+    fontSize: "0.8rem",
   },
   "& .MuiDataGrid-columnHeaders": {
     whiteSpace: "nowrap",
@@ -79,10 +79,10 @@ const PDPVCDPSupplyTable = ({ reportData, tableName }) => {
     if (reportData && reportData.length > 0) {
       console.log("in seting rwos and columns", reportData);
       const cols = Object.keys(reportData[0]).map((key, index) => {
-        let columnWidth = 40; // Default width
+        let columnWidth = 30; // Default width
 
         if (index === 0) {
-          columnWidth = 80;  // Increased width for the first column
+          columnWidth = 150;  // Increased width for the first column
         }
 
         return {
@@ -161,7 +161,7 @@ const PDPVCDPSupplyTable = ({ reportData, tableName }) => {
         sx={{
           textAlign: "center",
           fontWeight: "bold",
-          backgroundColor: "#FFC107"
+          //backgroundColor: "#FFC107"
         }}
       >
         {tableName}
