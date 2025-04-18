@@ -672,7 +672,7 @@ function DemandSupplyMatching() {
       <Dialog
         open={auditOpen}
         onClose={handleAuditClose}
-        maxWidth="md"
+        maxWidth="lg" // increased popup width
         fullWidth
       >
         <DialogTitle>Audit History</DialogTitle>
@@ -682,7 +682,7 @@ function DemandSupplyMatching() {
             <Typography>Loading...</Typography>
           ) : (
             <div style={{ height: 400, width: "100%", marginTop: 16 }}>
-              <DataGrid
+              <StyledDataGrid // changed from DataGrid to StyledDataGrid
                 rows={auditData}
                 columns={[
                   { field: "auditid", headerName: "Audit ID", width: 100 },
