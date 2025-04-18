@@ -1,5 +1,3 @@
-// filepath: c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\pages\DemandSupplyMatching.js
-// DemandSupplyMatching.js
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Box,
@@ -99,6 +97,8 @@ function DemandSupplyMatching() {
   const [auditData, setAuditData] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
+  const [dropdownOptions, setDropdownOptions] = useState({}); // Store dropdown options here
+
   const editableColumns = [
     "DemandType",
     "DemandStatus",
@@ -133,8 +133,8 @@ function DemandSupplyMatching() {
         params: { fieldName },
       });
       return response.data.map((item) => ({
-        value: item.VALUE,
-        label: item.DESC,
+        value: item.key_value,
+        label: item.description,
       }));
     } catch (error) {
       console.error(`Error fetching dropdown options for ${fieldName}:`, error);
@@ -144,6 +144,17 @@ function DemandSupplyMatching() {
 
   useEffect(() => {
     let isMounted = true;
+
+    const fetchAllDropdownOptions = async () => {
+      const options = {};
+      for (const field in fieldToDropdownTypeMap) {
+        const dropdownType = fieldToDropdownTypeMap[field];
+        options[field] = await fetchDropdownOptions(dropdownType);
+      }
+      if (isMounted) {
+        setDropdownOptions(options);
+      }
+    };
 
     const fetchDropdownData = async () => {
       try {
@@ -171,6 +182,7 @@ function DemandSupplyMatching() {
     };
 
     fetchDropdownData();
+    fetchAllDropdownOptions();
 
     return () => {
       isMounted = false;
@@ -372,62 +384,17 @@ function DemandSupplyMatching() {
     }
   };
 
-  const DropdownEditCell = ({ field, value, id, api: gridApi }) => {
-    const [options, setOptions] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const loadOptions = async () => {
-        const dropdownType = fieldToDropdownTypeMap[field];
-        if (!dropdownType) {
-          console.warn(`No dropdown type mapping found for field: ${field}`); // Debug log
-          return;
-        }
-
-        console.log(`Fetching dropdown options for field: ${field}`); // Debug log
-        try {
-          const response = await api.get(`/demand/dropdown`, {
-            params: { fieldName: dropdownType },
-          });
-          console.log(`Raw dropdown options for ${field}:`, response.data); // Debug log
-
-          // Map the response data to value and label
-          const dropdownOptions = response.data.map((item) => ({
-            value: item.key_value, // Use key_value for the value
-            label: item.description, // Use description for the label
-          }));
-          console.log(`Mapped dropdown options for ${field}:`, dropdownOptions); // Debug log
-
-          setOptions(dropdownOptions);
-        } catch (error) {
-          console.error(`Error fetching dropdown options for ${field}:`, error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadOptions();
-    }, [field]);
-
-    if (loading) {
-      return <Typography>Loading...</Typography>;
-    }
-
+  const DropdownEditCell = ({ field, value, id, api: gridApi, options }) => {
     // Ensure the value matches one of the available options
     const selectedValue = options.some((option) => option.value === value)
       ? value
       : "";
-
-    console.log(
-      `Rendering dropdown for field ${field} with value: ${selectedValue}`
-    ); // Debug log
-    console.log(`Available options for field ${field}:`, options); // Debug log
 
     return (
       <Select
         value={selectedValue}
         onChange={(event) => {
           const newValue = event.target.value;
-          console.log(`Dropdown value selected for field ${field}:`, newValue); // Debug log
           gridApi.setEditCellValue({ id, field, value: newValue });
         }}
         sx={{ width: "100%" }}
@@ -498,12 +465,13 @@ function DemandSupplyMatching() {
                 value={params.value}
                 id={params.id}
                 api={params.api} // Pass the grid's API object
+                options={dropdownOptions[params.field] || []} // Pass the options
               />
             )
           : undefined,
       })),
     ],
-    [columns, rowModesModel, data, editableColumns]
+    [columns, rowModesModel, data, editableColumns, dropdownOptions]
   );
 
   return (
