@@ -228,4 +228,23 @@ router.get("/dropdown", async (req, res) => {
   }
 });
 
+router.get("/audit_history", async (req, res) => {
+  const { unique_id } = req.query;
+  if (!unique_id) {
+    return res.status(400).json({ error: "unique_id is required" });
+  }
+  try {
+    const query = `
+      SELECT auditid, so_id, status, roles, modified_date, modified_by, comments
+      FROM public.sdm_audit_history
+      WHERE so_id = $1
+    `;
+    const { rows } = await pool.query(query, [unique_id]);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching audit history:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

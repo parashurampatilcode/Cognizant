@@ -12,6 +12,10 @@ import {
   Autocomplete,
   TextField,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -26,6 +30,7 @@ import {
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 
 const primaryColor = "#005EB8";
@@ -88,6 +93,11 @@ function DemandSupplyMatching() {
   const [buDescOptions, setBuDescOptions] = useState([]);
   const [pdlNameOptions, setPdlNameOptions] = useState([]);
   const [offOnOptions, setOffOnOptions] = useState([]);
+
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [selectedUnique, setSelectedUnique] = useState(null);
+  const [auditData, setAuditData] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   const editableColumns = [
     "DemandType",
@@ -220,9 +230,29 @@ function DemandSupplyMatching() {
     }
   };
 
-  const handleDeleteClick = (id) => () => {
-    const updatedData = data.filter((row) => row.ID !== id);
-    setData(updatedData);
+  const handleAuditClick = (id) => async () => {
+    const row = data.find((r) => r.item_id === id);
+    if (!row) return;
+    const uniqueId = row.SoId;
+    setSelectedUnique(uniqueId);
+    setAuditOpen(true);
+    setAuditLoading(true);
+    try {
+      const response = await api.get("/demand/audit_history", {
+        params: { unique_id: uniqueId },
+      });
+      setAuditData(response.data);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const handleAuditClose = () => {
+    setAuditOpen(false);
+    setAuditData([]);
+    setSelectedUnique(null);
   };
 
   const handleCancelClick = (id) => () => {
@@ -402,7 +432,7 @@ function DemandSupplyMatching() {
         field: "actions",
         type: "actions",
         headerName: "Actions",
-        width: 100,
+        width: 120,
         cellClassName: "actions",
         getActions: ({ id }) => {
           const isInEditMode = rowModesModel[id]?.mode === "edit";
@@ -432,9 +462,9 @@ function DemandSupplyMatching() {
               color="inherit"
             />,
             <GridActionsCellItem
-              icon={<DeleteIcon />}
-              label="Delete"
-              onClick={handleDeleteClick(id)}
+              icon={<HistoryIcon />}
+              label="Audit History"
+              onClick={handleAuditClick(id)}
               color="inherit"
             />,
           ];
@@ -623,6 +653,53 @@ function DemandSupplyMatching() {
           }}
         />
       </div>
+      {/* Audit History Dialog */}
+      <Dialog
+        open={auditOpen}
+        onClose={handleAuditClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Audit History</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1">SO ID: {selectedUnique}</Typography>
+          {auditLoading ? (
+            <Typography>Loading...</Typography>
+          ) : (
+            <div style={{ height: 400, width: "100%", marginTop: 16 }}>
+              <DataGrid
+                rows={auditData}
+                columns={[
+                  { field: "auditid", headerName: "Audit ID", width: 100 },
+                  { field: "so_id", headerName: "SO ID", width: 150 },
+                  { field: "status", headerName: "Status", width: 120 },
+                  { field: "roles", headerName: "Roles", width: 150 },
+                  {
+                    field: "modified_date",
+                    headerName: "Modified Date",
+                    width: 180,
+                  },
+                  {
+                    field: "modified_by",
+                    headerName: "Modified By",
+                    width: 150,
+                  },
+                  { field: "comments", headerName: "Comments", width: 200 },
+                ]}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10]}
+                disableSelectionOnClick
+                getRowId={(row) => row.auditid}
+              />
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAuditClose} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
