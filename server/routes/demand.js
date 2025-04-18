@@ -247,4 +247,27 @@ router.get("/audit_history", async (req, res) => {
   }
 });
 
+router.post("/audit_insert", async (req, res) => {
+  const { soid, status, roles, modifieddate, modifiedby, notes } = req.body;
+  // Updated required parameters: make 'status' optional
+  if (!soid || !modifieddate || !modifiedby) {
+    return res
+      .status(400)
+      .json({
+        error: "Missing required parameters: soid, modifieddate, or modifiedby",
+      });
+  }
+  const auditStatus = status || ""; // default to an empty string if not provided
+
+  try {
+    const query = `CALL public.dsm_audit_insert($1, $2, $3, $4, $5, $6)`;
+    const params = [soid, auditStatus, roles, modifieddate, modifiedby, notes];
+    await pool.query(query, params);
+    res.json({ message: "Audit record inserted successfully." });
+  } catch (error) {
+    console.error("Error inserting audit record:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

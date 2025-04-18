@@ -220,6 +220,21 @@ function DemandSupplyMatching() {
 
     try {
       await api.post("/demand/update", payload);
+      // Integrate audit procedure call
+      const auditPayload = {
+        soid: updatedRow.SoId,
+        status: updatedRow.SOLineStatus,
+        roles: null,
+        modifieddate: new Date().toISOString(),
+        modifiedby: pdlName,
+        notes:
+          updatedRow.RemarksDetails ||
+          updatedRow.remarks ||
+          updatedRow.remarks_details ||
+          "",
+      };
+      await api.post("/demand/audit_insert", auditPayload);
+
       setRowModesModel((prevModel) => ({
         ...prevModel,
         [id]: { mode: "view" },
