@@ -209,4 +209,23 @@ router.post("/update", async (req, res) => {
   }
 });
 
+router.get("/dropdown", async (req, res) => {
+  const { fieldName } = req.query;
+
+  if (!fieldName) {
+    console.error("Field name is missing in the request."); // Debug log
+    return res.status(400).json({ error: "Field name is required" });
+  }
+
+  try {
+    console.log(`Fetching dropdown values for field: ${fieldName}`); // Debug log
+    const dropdownValues = await Demand.getDropdownValuesByType(fieldName);
+    console.log(`Dropdown values for ${fieldName}:`, dropdownValues); // Debug log
+    res.json(dropdownValues);
+  } catch (error) {
+    console.error("Error fetching dropdown values:", error);
+    res.status(500).json({ error: "Failed to fetch dropdown values" });
+  }
+});
+
 module.exports = router;
