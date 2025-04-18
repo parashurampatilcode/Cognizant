@@ -1,8 +1,11 @@
 const express = require("express");
 const app = express();
-const demandselectRoutes = require("./routes/demandselect");
+const demandRoutes = require("./routes/demand");
 
-// Register the demandselect routes
-app.use("/demandselect", demandselectRoutes);
+// Middleware to parse JSON requests
+app.use(express.json());
+
+// Register the demand routes under /demandselect
+app.use("/demandselect", demandRoutes);
 
 module.exports = app;

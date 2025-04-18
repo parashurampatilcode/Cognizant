@@ -209,4 +209,65 @@ router.post("/update", async (req, res) => {
   }
 });
 
+router.get("/dropdown", async (req, res) => {
+  const { fieldName } = req.query;
+
+  if (!fieldName) {
+    console.error("Field name is missing in the request."); // Debug log
+    return res.status(400).json({ error: "Field name is required" });
+  }
+
+  try {
+    console.log(`Fetching dropdown values for field: ${fieldName}`); // Debug log
+    const dropdownValues = await Demand.getDropdownValuesByType(fieldName);
+    console.log(`Dropdown values for ${fieldName}:`, dropdownValues); // Debug log
+    res.json(dropdownValues);
+  } catch (error) {
+    console.error("Error fetching dropdown values:", error);
+    res.status(500).json({ error: "Failed to fetch dropdown values" });
+  }
+});
+
+router.get("/audit_history", async (req, res) => {
+  const { unique_id } = req.query;
+  if (!unique_id) {
+    return res.status(400).json({ error: "unique_id is required" });
+  }
+  try {
+    const query = `
+      SELECT auditid, so_id, status, roles, modified_date, modified_by, comments
+      FROM public.sdm_audit_history
+      WHERE so_id = $1
+    `;
+    const { rows } = await pool.query(query, [unique_id]);
+    res.json(rows);
+  } catch (error) {
+    console.error("Error fetching audit history:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/audit_insert", async (req, res) => {
+  const { soid, status, roles, modifieddate, modifiedby, notes } = req.body;
+  // Updated required parameters: make 'status' optional
+  if (!soid || !modifieddate || !modifiedby) {
+    return res
+      .status(400)
+      .json({
+        error: "Missing required parameters: soid, modifieddate, or modifiedby",
+      });
+  }
+  const auditStatus = status || ""; // default to an empty string if not provided
+
+  try {
+    const query = `CALL public.dsm_audit_insert($1, $2, $3, $4, $5, $6)`;
+    const params = [soid, auditStatus, roles, modifieddate, modifiedby, notes];
+    await pool.query(query, params);
+    res.json({ message: "Audit record inserted successfully." });
+  } catch (error) {
+    console.error("Error inserting audit record:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = router;

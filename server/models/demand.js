@@ -344,6 +344,17 @@ const Demand = {
       }
     }
   },
+
+  async getDropdownValuesByType(type) {
+    try {
+      const query = `SELECT * FROM get_demand_dropdown_by_type($1)`;
+      const { rows } = await pool.query(query, [type]);
+      return rows;
+    } catch (error) {
+      console.error(`Error fetching dropdown values for type ${type}:`, error);
+      throw error;
+    }
+  },
 };
 
 const express = require("express");
