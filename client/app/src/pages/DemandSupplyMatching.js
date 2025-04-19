@@ -1,5 +1,3 @@
-// filepath: c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\pages\DemandSupplyMatching.js
-// DemandSupplyMatching.js
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Box,
@@ -11,8 +9,12 @@ import {
   MenuItem,
   Autocomplete,
   TextField,
-  Button, // Import Button component
-} from "@mui/material"; // Import Autocomplete and TextField
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 import {
@@ -20,15 +22,16 @@ import {
   GridToolbarContainer,
   GridActionsCellItem,
 } from "@mui/x-data-grid";
-import api from "../api"; // Import the configured Axios instance
+import api from "../api";
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 
-const primaryColor = "#005EB8"; // Cognizant's primary blue
+const primaryColor = "#005EB8";
 const darkGrey = "#D3D3D3";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
@@ -56,19 +59,19 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   "& .MuiDataGrid-columnHeaders": {
     whiteSpace: "nowrap",
   },
-  "& .MuiDataGrid-cell--editable": {
-    backgroundColor: "#FFFDE7", // Light yellow background for editable cells
+  "& .editable-cell": {
+    backgroundColor: "#FFFDE7 !important", // Light yellow background for editable cells in view mode
     "&:hover": {
-      backgroundColor: "#FFF9C4", // Slightly darker yellow on hover
+      backgroundColor: "#FFF9C4 !important",
     },
   },
   "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell--editable": {
-    backgroundColor: "#FFF59D !important", // Yellow background for editable cells
-    border: "1px solid #005EB8", // Add a border
+    backgroundColor: "#FFF59D !important", // Dark yellow background for editable cells in edit mode
+    border: "1px solid #005EB8",
   },
   "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell:not(.MuiDataGrid-cell--editable)":
     {
-      backgroundColor: "#E0E0E0 !important", // Grey background for non-editable cells
+      backgroundColor: "#E0E0E0 !important",
     },
 }));
 
@@ -89,6 +92,13 @@ function DemandSupplyMatching() {
   const [pdlNameOptions, setPdlNameOptions] = useState([]);
   const [offOnOptions, setOffOnOptions] = useState([]);
 
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [selectedUnique, setSelectedUnique] = useState(null);
+  const [auditData, setAuditData] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const [dropdownOptions, setDropdownOptions] = useState({}); // Store dropdown options here
+
   const editableColumns = [
     "DemandType",
     "DemandStatus",
@@ -108,8 +118,43 @@ function DemandSupplyMatching() {
     "RemarksDetails",
   ];
 
+  const fieldToDropdownTypeMap = {
+    DemandCategory: "DEMAND_CATEGORY",
+    FulfilmentPlan: "FULFILMENT_PLAN",
+    SupplySource: "SUPPLY_SOURCE",
+    DemandType: "DEMAND_TYPE",
+    DemandStatus: "DEMAND_STATUS",
+    Grades: "GRADE",
+  };
+
+  const fetchDropdownOptions = async (fieldName) => {
+    try {
+      const response = await api.get(`/demand/dropdown`, {
+        params: { fieldName },
+      });
+      return response.data.map((item) => ({
+        value: item.key_value,
+        label: item.description,
+      }));
+    } catch (error) {
+      console.error(`Error fetching dropdown options for ${fieldName}:`, error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
+
+    const fetchAllDropdownOptions = async () => {
+      const options = {};
+      for (const field in fieldToDropdownTypeMap) {
+        const dropdownType = fieldToDropdownTypeMap[field];
+        options[field] = await fetchDropdownOptions(dropdownType);
+      }
+      if (isMounted) {
+        setDropdownOptions(options);
+      }
+    };
 
     const fetchDropdownData = async () => {
       try {
@@ -119,10 +164,10 @@ function DemandSupplyMatching() {
           pdlNameResponse,
           offOnResponse,
         ] = await Promise.all([
-          api.get("/demandselect/parentCustomers"), // Use the configured Axios instance
-          api.get("/demandselect/businessUnitDescs"), // Use the configured Axios instance
-          api.get("/demandselect/pdlNames"), // Use the configured Axios instance
-          api.get("/demandselect/offOns"), // Use the configured Axios instance
+          api.get("/demandselect/parentCustomers"),
+          api.get("/demandselect/businessUnitDescs"),
+          api.get("/demandselect/pdlNames"),
+          api.get("/demandselect/offOns"),
         ]);
 
         if (isMounted) {
@@ -137,6 +182,7 @@ function DemandSupplyMatching() {
     };
 
     fetchDropdownData();
+    fetchAllDropdownOptions();
 
     return () => {
       isMounted = false;
@@ -164,7 +210,7 @@ function DemandSupplyMatching() {
     };
 
     fetchData();
-  }, []); // Ensure this runs only once on component mount
+  }, []);
 
   const handleEditClick = (id) => () => {
     setRowModesModel((prevModel) => ({
@@ -186,6 +232,21 @@ function DemandSupplyMatching() {
 
     try {
       await api.post("/demand/update", payload);
+      // Integrate audit procedure call
+      const auditPayload = {
+        soid: updatedRow.SoId,
+        status: updatedRow.SOLineStatus,
+        roles: null,
+        modifieddate: new Date().toISOString(),
+        modifiedby: pdlName,
+        notes:
+          updatedRow.RemarksDetails ||
+          updatedRow.remarks ||
+          updatedRow.remarks_details ||
+          "",
+      };
+      await api.post("/demand/audit_insert", auditPayload);
+
       setRowModesModel((prevModel) => ({
         ...prevModel,
         [id]: { mode: "view" },
@@ -196,9 +257,29 @@ function DemandSupplyMatching() {
     }
   };
 
-  const handleDeleteClick = (id) => () => {
-    const updatedData = data.filter((row) => row.ID !== id);
-    setData(updatedData);
+  const handleAuditClick = (id) => async () => {
+    const row = data.find((r) => r.item_id === id);
+    if (!row) return;
+    const uniqueId = row.SoId;
+    setSelectedUnique(uniqueId);
+    setAuditOpen(true);
+    setAuditLoading(true);
+    try {
+      const response = await api.get("/demand/audit_history", {
+        params: { unique_id: uniqueId },
+      });
+      setAuditData(response.data);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const handleAuditClose = () => {
+    setAuditOpen(false);
+    setAuditData([]);
+    setSelectedUnique(null);
   };
 
   const handleCancelClick = (id) => () => {
@@ -243,11 +324,9 @@ function DemandSupplyMatching() {
         }, {}),
       };
 
-      // Call the API to save the updated row
       await api.post("/demand/update", payload);
       console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
 
-      // Update the data state with the updated row
       setData((prevData) =>
         prevData.map((row) =>
           row.item_id === updatedRow.item_id ? updatedRow : row
@@ -255,21 +334,20 @@ function DemandSupplyMatching() {
       );
     } catch (error) {
       console.error("Error saving row:", error);
-      throw error; // Re-throw the error to prevent the row from being updated in the UI
+      throw error;
     }
 
     return updatedRow;
   };
 
   const handleRowEditStart = (params, event) => {
-    event.defaultMuiPrevented = true; // Prevent default behavior
+    event.defaultMuiPrevented = true;
   };
 
   const handleRowEditStop = (params, event) => {
-    event.defaultMuiPrevented = true; // Prevent default behavior
+    event.defaultMuiPrevented = true;
   };
 
-  // Add visual feedback for the row being edited
   const getRowClassName = (params) => {
     return rowModesModel[params.id]?.mode === "edit" ? "row-editing" : "";
   };
@@ -306,13 +384,37 @@ function DemandSupplyMatching() {
     }
   };
 
+  const DropdownEditCell = ({ field, value, id, api: gridApi, options }) => {
+    // Ensure the value matches one of the available options
+    const selectedValue = options.some((option) => option.value === value)
+      ? value
+      : "";
+
+    return (
+      <Select
+        value={selectedValue}
+        onChange={(event) => {
+          const newValue = event.target.value;
+          gridApi.setEditCellValue({ id, field, value: newValue });
+        }}
+        sx={{ width: "100%" }}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    );
+  };
+
   const columnsWithActions = useMemo(
     () => [
       {
         field: "actions",
         type: "actions",
         headerName: "Actions",
-        width: 100,
+        width: 120,
         cellClassName: "actions",
         getActions: ({ id }) => {
           const isInEditMode = rowModesModel[id]?.mode === "edit";
@@ -342,17 +444,34 @@ function DemandSupplyMatching() {
               color="inherit"
             />,
             <GridActionsCellItem
-              icon={<DeleteIcon />}
-              label="Delete"
-              onClick={handleDeleteClick(id)}
+              icon={<HistoryIcon />}
+              label="Audit History"
+              onClick={handleAuditClick(id)}
               color="inherit"
             />,
           ];
         },
       },
-      ...columns,
+      ...columns.map((col) => ({
+        ...col,
+        editable: editableColumns.includes(col.field),
+        cellClassName: editableColumns.includes(col.field)
+          ? "editable-cell"
+          : null,
+        renderEditCell: fieldToDropdownTypeMap[col.field]
+          ? (params) => (
+              <DropdownEditCell
+                field={params.field}
+                value={params.value}
+                id={params.id}
+                api={params.api} // Pass the grid's API object
+                options={dropdownOptions[params.field] || []} // Pass the options
+              />
+            )
+          : undefined,
+      })),
     ],
-    [columns, rowModesModel, data]
+    [columns, rowModesModel, data, editableColumns, dropdownOptions]
   );
 
   return (
@@ -372,9 +491,9 @@ function DemandSupplyMatching() {
       >
         <FormControl size="small" sx={{ minWidth: 300 }}>
           <Autocomplete
-            options={parentCustomerOptions} // Options for the dropdown
-            value={parentCustomer} // Current selected value
-            onChange={(event, newValue) => setParentCustomer(newValue)} // Handle selection
+            options={parentCustomerOptions}
+            value={parentCustomer}
+            onChange={(event, newValue) => setParentCustomer(newValue)}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -387,16 +506,16 @@ function DemandSupplyMatching() {
               options.filter((option) =>
                 option.toLowerCase().includes(inputValue.toLowerCase())
               )
-            } // Filter options based on user input
-            isOptionEqualToValue={(option, value) => option === value} // Ensure proper equality check
+            }
+            isOptionEqualToValue={(option, value) => option === value}
           />
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 300 }}>
           <Autocomplete
-            options={buDescOptions} // Options for the dropdown
-            value={buDesc} // Current selected value
-            onChange={(event, newValue) => setBuDesc(newValue)} // Handle selection
+            options={buDescOptions}
+            value={buDesc}
+            onChange={(event, newValue) => setBuDesc(newValue)}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -409,8 +528,8 @@ function DemandSupplyMatching() {
               options.filter((option) =>
                 option.toLowerCase().includes(inputValue.toLowerCase())
               )
-            } // Filter options based on user input
-            isOptionEqualToValue={(option, value) => option === value} // Ensure proper equality check
+            }
+            isOptionEqualToValue={(option, value) => option === value}
           />
         </FormControl>
 
@@ -487,7 +606,7 @@ function DemandSupplyMatching() {
           rows={filteredRows}
           columns={columnsWithActions.map((col) => ({
             ...col,
-            editable: editableColumns.includes(col.field), // Enable editing for specific columns
+            editable: editableColumns.includes(col.field),
           }))}
           pageSize={10}
           rowsPerPageOptions={[10, 25, 50]}
@@ -500,25 +619,70 @@ function DemandSupplyMatching() {
                   backgroundColor: "#FFFFFF",
                   borderBottom: `1px solid #D3D3D3`,
                 }}
-              >
-                {/* Existing toolbar content if any */}
-              </GridToolbarContainer>
+              ></GridToolbarContainer>
             ),
           }}
-          getRowId={(row) => row.item_id} // Use item_id as the unique identifier
+          getRowId={(row) => row.item_id}
           editMode="row"
           rowModesModel={rowModesModel}
           onRowEditStart={handleRowEditStart}
           onRowEditStop={handleRowEditStop}
-          processRowUpdate={processRowUpdate} // Use the updated function
-          getRowClassName={getRowClassName} // Apply row class for visual feedback
+          processRowUpdate={processRowUpdate}
+          getRowClassName={getRowClassName}
           sx={{
             "& .row-editing": {
-              backgroundColor: "#FFF3E0", // Highlight color for editing rows
+              backgroundColor: "#FFF3E0",
             },
           }}
         />
       </div>
+      {/* Audit History Dialog */}
+      <Dialog
+        open={auditOpen}
+        onClose={handleAuditClose}
+        maxWidth="lg" // increased popup width
+        fullWidth
+      >
+        <DialogTitle>Audit History</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1">SO ID: {selectedUnique}</Typography>
+          {auditLoading ? (
+            <Typography>Loading...</Typography>
+          ) : (
+            <div style={{ height: 400, width: "100%", marginTop: 16 }}>
+              <StyledDataGrid // changed from DataGrid to StyledDataGrid
+                rows={auditData}
+                columns={[
+                  { field: "auditid", headerName: "Audit ID", width: 100 },
+                  { field: "so_id", headerName: "SO ID", width: 150 },
+                  { field: "status", headerName: "Status", width: 120 },
+                  { field: "roles", headerName: "Roles", width: 150 },
+                  {
+                    field: "modified_date",
+                    headerName: "Modified Date",
+                    width: 180,
+                  },
+                  {
+                    field: "modified_by",
+                    headerName: "Modified By",
+                    width: 150,
+                  },
+                  { field: "comments", headerName: "Comments", width: 200 },
+                ]}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10]}
+                disableSelectionOnClick
+                getRowId={(row) => row.auditid}
+              />
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAuditClose} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
