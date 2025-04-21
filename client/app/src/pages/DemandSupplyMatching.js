@@ -109,11 +109,31 @@ const DropdownEditCell = React.memo(
   }
 );
 
+function getWeekOfMonth(date) {
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+  const dayOfMonth = date.getDate();
+  let weekNumber = Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
+  return weekNumber;
+}
+
 const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
   const [date, setDate] = useState(value ? new Date(value) : null);
 
   const handleChange = (newDate) => {
     setDate(newDate);
+    if (newDate) {
+      const weekNumber = getWeekOfMonth(newDate);
+      const monthName = newDate.toLocaleString("default", { month: "short" });
+      const allocationWeek = `${monthName}-Week ${weekNumber}`;
+      gridApi.setEditCellValue({
+        id,
+        field: "AllocationWeek",
+        value: allocationWeek,
+      });
+    } else {
+      gridApi.setEditCellValue({ id, field: "AllocationWeek", value: "" });
+    }
     gridApi.setEditCellValue({ id, field, value: newDate?.toISOString() });
   };
 
@@ -248,9 +268,14 @@ function DemandSupplyMatching() {
         const response = await api.get("/demandselect");
         let fetchedData = response.data;
 
-        // Format the JoiningAllocationDate to show only the date
         fetchedData = fetchedData.map((item) => {
           if (item.JoiningAllocationDate) {
+            const joiningDate = new Date(item.JoiningAllocationDate);
+            const weekNumber = getWeekOfMonth(joiningDate);
+            const monthName = joiningDate.toLocaleString("default", {
+              month: "short",
+            });
+            item.AllocationWeek = `${monthName}-Week ${weekNumber}`;
             item.JoiningAllocationDate =
               item.JoiningAllocationDate.split("T")[0];
           }
@@ -400,8 +425,13 @@ function DemandSupplyMatching() {
       setData((prevData) =>
         prevData.map((row) => {
           if (row.item_id === updatedRow.item_id) {
-            // Format the JoiningAllocationDate after saving
             if (updatedRow.JoiningAllocationDate) {
+              const joiningDate = new Date(updatedRow.JoiningAllocationDate);
+              const weekNumber = getWeekOfMonth(joiningDate);
+              const monthName = joiningDate.toLocaleString("default", {
+                month: "short",
+              });
+              updatedRow.AllocationWeek = `${monthName}-Week ${weekNumber}`;
               updatedRow.JoiningAllocationDate =
                 updatedRow.JoiningAllocationDate.split("T")[0];
             }
