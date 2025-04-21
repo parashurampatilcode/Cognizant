@@ -109,6 +109,27 @@ const DropdownEditCell = React.memo(
   }
 );
 
+const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [date, setDate] = useState(value ? new Date(value) : null);
+
+  const handleChange = (newDate) => {
+    setDate(newDate);
+    gridApi.setEditCellValue({ id, field, value: newDate?.toISOString() });
+  };
+
+  return (
+    <TextField
+      type="date"
+      value={date ? date.toISOString().split("T")[0] : ""}
+      onChange={(e) => {
+        const newDate = e.target.value ? new Date(e.target.value) : null;
+        handleChange(newDate);
+      }}
+      sx={{ width: "100%" }}
+    />
+  );
+});
+
 function DemandSupplyMatching() {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -225,7 +246,18 @@ function DemandSupplyMatching() {
     const fetchData = async () => {
       try {
         const response = await api.get("/demandselect");
-        setData(response.data);
+        let fetchedData = response.data;
+
+        // Format the JoiningAllocationDate to show only the date
+        fetchedData = fetchedData.map((item) => {
+          if (item.JoiningAllocationDate) {
+            item.JoiningAllocationDate =
+              item.JoiningAllocationDate.split("T")[0];
+          }
+          return item;
+        });
+
+        setData(fetchedData);
 
         if (response.data.length > 0) {
           let cols = Object.keys(response.data[0]).map((key) => ({
@@ -366,9 +398,17 @@ function DemandSupplyMatching() {
       console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
 
       setData((prevData) =>
-        prevData.map((row) =>
-          row.item_id === updatedRow.item_id ? updatedRow : row
-        )
+        prevData.map((row) => {
+          if (row.item_id === updatedRow.item_id) {
+            // Format the JoiningAllocationDate after saving
+            if (updatedRow.JoiningAllocationDate) {
+              updatedRow.JoiningAllocationDate =
+                updatedRow.JoiningAllocationDate.split("T")[0];
+            }
+            return updatedRow;
+          }
+          return row;
+        })
       );
     } catch (error) {
       console.error("Error saving row:", error);
@@ -480,6 +520,15 @@ function DemandSupplyMatching() {
                 id={params.id}
                 api={params.api} // Pass the grid's API object
                 options={dropdownOptions[col.field] || []}
+              />
+            )
+          : col.field === "JoiningAllocationDate"
+          ? (params) => (
+              <DateFieldEditCell
+                field={params.field}
+                value={params.value}
+                id={params.id}
+                api={params.api}
               />
             )
           : undefined,
