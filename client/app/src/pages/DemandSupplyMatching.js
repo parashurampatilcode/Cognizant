@@ -1,6 +1,10 @@
-// filepath: c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\pages\DemandSupplyMatching.js
-// DemandSupplyMatching.js
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import {
   Box,
   Typography,
@@ -77,6 +81,32 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     },
 }));
 
+const DropdownEditCell = React.memo(
+  ({ field, value, id, api: gridApi, options }) => {
+    // Ensure the value matches one of the available options
+    const selectedValue = options.some((option) => option.value === value)
+      ? value
+      : "";
+
+    return (
+      <Select
+        value={selectedValue}
+        onChange={(event) => {
+          const newValue = event.target.value;
+          gridApi.setEditCellValue({ id, field, value: newValue });
+        }}
+        sx={{ width: "100%" }}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    );
+  }
+);
+
 function DemandSupplyMatching() {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -98,6 +128,8 @@ function DemandSupplyMatching() {
   const [selectedUnique, setSelectedUnique] = useState(null);
   const [auditData, setAuditData] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
+
+  const [dropdownOptions, setDropdownOptions] = useState({});
 
   const editableColumns = [
     "DemandType",
@@ -127,23 +159,33 @@ function DemandSupplyMatching() {
     Grades: "GRADE",
   };
 
-  const fetchDropdownOptions = async (fieldName) => {
-    try {
-      const response = await api.get(`/demand/dropdown`, {
-        params: { fieldName },
-      });
-      return response.data.map((item) => ({
-        value: item.VALUE,
-        label: item.DESC,
-      }));
-    } catch (error) {
-      console.error(`Error fetching dropdown options for ${fieldName}:`, error);
-      return [];
-    }
-  };
-
   useEffect(() => {
     let isMounted = true;
+
+    const fetchAllDropdownOptions = async () => {
+      const options = {};
+      for (const field in fieldToDropdownTypeMap) {
+        const dropdownType = fieldToDropdownTypeMap[field];
+        try {
+          const response = await api.get(`/demand/dropdown`, {
+            params: { fieldName: dropdownType },
+          });
+          options[field] = response.data.map((item) => ({
+            value: item.key_value,
+            label: item.description,
+          }));
+        } catch (error) {
+          console.error(
+            `Error fetching dropdown options for ${field}:`,
+            error
+          );
+          options[field] = []; // Ensure there's always a value
+        }
+      }
+      if (isMounted) {
+        setDropdownOptions(options);
+      }
+    };
 
     const fetchDropdownData = async () => {
       try {
@@ -170,6 +212,7 @@ function DemandSupplyMatching() {
       }
     };
 
+    fetchAllDropdownOptions();
     fetchDropdownData();
 
     return () => {
@@ -207,43 +250,46 @@ function DemandSupplyMatching() {
     }));
   };
 
-  const handleSaveClick = (id) => async () => {
-    const updatedRow = data.find((row) => row.item_id === id);
-    const payload = {
-      SoId: updatedRow["So Id"],
-      SOLineStatus: updatedRow["SO Line Status"],
-      ...editableColumns.reduce((acc, col) => {
-        acc[col] = updatedRow[col];
-        return acc;
-      }, {}),
-    };
-
-    try {
-      await api.post("/demand/update", payload);
-      // Integrate audit procedure call
-      const auditPayload = {
-        soid: updatedRow["So Id"],
-        status: updatedRow["So Line Status"],
-        roles: null,
-        modifieddate: new Date().toISOString(),
-        modifiedby: pdlName,
-        notes:
-          updatedRow.RemarksDetails ||
-          updatedRow.remarks ||
-          updatedRow.remarks_details ||
-          "",
+  const handleSaveClick = useCallback(
+    (id) => async () => {
+      const updatedRow = data.find((row) => row.item_id === id);
+      const payload = {
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["SO Line Status"],
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
       };
-      await api.post("/demand/audit_insert", auditPayload);
 
-      setRowModesModel((prevModel) => ({
-        ...prevModel,
-        [id]: { mode: "view" },
-      }));
-      console.log(`Row with id ${id} saved successfully.`);
-    } catch (error) {
-      console.error("Error saving row:", error);
-    }
-  };
+      try {
+        await api.post("/demand/update", payload);
+        // Integrate audit procedure call
+        const auditPayload = {
+          soid: updatedRow["So Id"],
+          status: updatedRow["So Line Status"],
+          roles: null,
+          modifieddate: new Date().toISOString(),
+          modifiedby: pdlName,
+          notes:
+            updatedRow.RemarksDetails ||
+            updatedRow.remarks ||
+            updatedRow.remarks_details ||
+            "",
+        };
+        await api.post("/demand/audit_insert", auditPayload);
+
+        setRowModesModel((prevModel) => ({
+          ...prevModel,
+          [id]: { mode: "view" },
+        }));
+        console.log(`Row with id ${id} saved successfully.`);
+      } catch (error) {
+        console.error("Error saving row:", error);
+      }
+    },
+    [data, editableColumns, pdlName, setRowModesModel]
+  );
 
   const handleAuditClick = (id) => async () => {
     const row = data.find((r) => r.item_id === id);
@@ -270,17 +316,20 @@ function DemandSupplyMatching() {
     setSelectedUnique(null);
   };
 
-  const handleCancelClick = (id) => () => {
-    setRowModesModel((prevModel) => ({
-      ...prevModel,
-      [id]: { mode: "view", ignoreModifications: true },
-    }));
+  const handleCancelClick = useCallback(
+    (id) => () => {
+      setRowModesModel((prevModel) => ({
+        ...prevModel,
+        [id]: { mode: "view", ignoreModifications: true },
+      }));
 
-    const editedRow = data.find((row) => row.item_id === id);
-    if (editedRow?.isNew) {
-      setData(data.filter((row) => row.item_id !== id));
-    }
-  };
+      const editedRow = data.find((row) => row.item_id === id);
+      if (editedRow?.isNew) {
+        setData(data.filter((row) => row.item_id !== id));
+      }
+    },
+    [data, setRowModesModel]
+  );
 
   const filteredRows = useMemo(() => {
     let filteredData = data;
@@ -306,7 +355,7 @@ function DemandSupplyMatching() {
       const payload = {
         SoId: updatedRow["So Id"],
         SOLineStatus: updatedRow["SO Line Status"],
-        ...editableColumns.reduce((acc, col) => { 
+        ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
         }, {}),
@@ -372,75 +421,6 @@ function DemandSupplyMatching() {
     }
   };
 
-  const DropdownEditCell = ({ field, value, id, api: gridApi }) => {
-    const [options, setOptions] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-      const loadOptions = async () => {
-        const dropdownType = fieldToDropdownTypeMap[field];
-        if (!dropdownType) {
-          console.warn(`No dropdown type mapping found for field: ${field}`); // Debug log
-          return;
-        }
-
-        console.log(`Fetching dropdown options for field: ${field}`); // Debug log
-        try {
-          const response = await api.get(`/demand/dropdown`, {
-            params: { fieldName: dropdownType },
-          });
-          console.log(`Raw dropdown options for ${field}:`, response.data); // Debug log
-
-          // Map the response data to value and label
-          const dropdownOptions = response.data.map((item) => ({
-            value: item.key_value, // Use key_value for the value
-            label: item.description, // Use description for the label
-          }));
-          console.log(`Mapped dropdown options for ${field}:`, dropdownOptions); // Debug log
-
-          setOptions(dropdownOptions);
-        } catch (error) {
-          console.error(`Error fetching dropdown options for ${field}:`, error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadOptions();
-    }, [field]);
-
-    if (loading) {
-      return <Typography>Loading...</Typography>;
-    }
-
-    // Ensure the value matches one of the available options
-    const selectedValue = options.some((option) => option.value === value)
-      ? value
-      : "";
-
-    console.log(
-      `Rendering dropdown for field ${field} with value: ${selectedValue}`
-    ); // Debug log
-    console.log(`Available options for field ${field}:`, options); // Debug log
-
-    return (
-      <Select
-        value={selectedValue}
-        onChange={(event) => {
-          const newValue = event.target.value;
-          console.log(`Dropdown value selected for field ${field}:`, newValue); // Debug log
-          gridApi.setEditCellValue({ id, field, value: newValue });
-        }}
-        sx={{ width: "100%" }}
-      >
-        {options.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    );
-  };
-
   const columnsWithActions = useMemo(
     () => [
       {
@@ -498,12 +478,21 @@ function DemandSupplyMatching() {
                 value={params.value}
                 id={params.id}
                 api={params.api} // Pass the grid's API object
+                options={dropdownOptions[col.field] || []}
               />
             )
           : undefined,
       })),
     ],
-    [columns, rowModesModel, data, editableColumns]
+    [
+      columns,
+      rowModesModel,
+      data,
+      editableColumns,
+      handleSaveClick,
+      handleCancelClick,
+      dropdownOptions,
+    ]
   );
 
   return (
