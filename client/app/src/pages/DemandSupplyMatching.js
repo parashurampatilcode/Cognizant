@@ -123,18 +123,32 @@ const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
   const handleChange = (newDate) => {
     setDate(newDate);
     if (newDate) {
-      const weekNumber = getWeekOfMonth(newDate);
-      const monthName = newDate.toLocaleString("default", { month: "short" });
-      const allocationWeek = `${monthName}-Week ${weekNumber}`;
+      // Only update AllocationWeek if the field is JoiningAllocationDate
+      if (field === "JoiningAllocationDate") {
+        const weekNumber = getWeekOfMonth(newDate);
+        const monthName = newDate.toLocaleString("default", { month: "short" });
+        const allocationWeek = `${monthName}-Week ${weekNumber}`;
+        gridApi.setEditCellValue({
+          id,
+          field: "AllocationWeek",
+          value: allocationWeek,
+        });
+      }
+    } else if (field === "JoiningAllocationDate") {
+      // Only clear AllocationWeek if JoiningAllocationDate is cleared
       gridApi.setEditCellValue({
         id,
         field: "AllocationWeek",
-        value: allocationWeek,
+        value: "",
       });
-    } else {
-      gridApi.setEditCellValue({ id, field: "AllocationWeek", value: "" });
     }
-    gridApi.setEditCellValue({ id, field, value: newDate?.toISOString() });
+
+    // Update the actual date field
+    gridApi.setEditCellValue({
+      id,
+      field,
+      value: newDate ? newDate.toISOString().split("T")[0] : null,
+    });
   };
 
   return (
@@ -425,15 +439,30 @@ function DemandSupplyMatching() {
       setData((prevData) =>
         prevData.map((row) => {
           if (row.item_id === updatedRow.item_id) {
-            if (updatedRow.JoiningAllocationDate) {
+            // Find the old row to compare JoiningAllocationDate
+            const oldRow = prevData.find(
+              (r) => r.item_id === updatedRow.item_id
+            );
+
+            // Update AllocationWeek only if JoiningAllocationDate has changed
+            if (
+              updatedRow.JoiningAllocationDate &&
+              oldRow.JoiningAllocationDate !== updatedRow.JoiningAllocationDate
+            ) {
               const joiningDate = new Date(updatedRow.JoiningAllocationDate);
               const weekNumber = getWeekOfMonth(joiningDate);
               const monthName = joiningDate.toLocaleString("default", {
                 month: "short",
               });
               updatedRow.AllocationWeek = `${monthName}-Week ${weekNumber}`;
-              updatedRow.JoiningAllocationDate =
-                updatedRow.JoiningAllocationDate.split("T")[0];
+              updatedRow.JoiningAllocationDate = joiningDate
+                .toISOString()
+                .split("T")[0];
+            }
+
+            if (updatedRow.EffMonth) {
+              const effMonthDate = new Date(updatedRow.EffMonth);
+              updatedRow.EffMonth = effMonthDate.toISOString().split("T")[0];
             }
             return updatedRow;
           }
@@ -552,7 +581,7 @@ function DemandSupplyMatching() {
                 options={dropdownOptions[col.field] || []}
               />
             )
-          : col.field === "JoiningAllocationDate"
+          : col.field === "JoiningAllocationDate" || col.field === "EffMonth"
           ? (params) => (
               <DateFieldEditCell
                 field={params.field}
