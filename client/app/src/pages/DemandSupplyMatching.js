@@ -45,6 +45,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-columnHeaderTitleContainer": {
       "& .MuiDataGrid-columnHeaderTitle": {
         fontWeight: "bold !important",
+        whiteSpace: "normal", // Allow wrapping
+        wordBreak: "break-word", // Break long words if needed
       },
     },
     backgroundColor: primaryColor,
@@ -63,7 +65,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderBottom: `1px solid ${darkGrey}`,
   },
   "& .MuiDataGrid-columnHeaders": {
-    whiteSpace: "nowrap",
+    whiteSpace: "normal", // Allow wrapping
   },
   "& .editable-cell": {
     backgroundColor: "#FFFDE7 !important", // Light yellow background for editable cells in view mode
@@ -175,10 +177,7 @@ function DemandSupplyMatching() {
             label: item.description,
           }));
         } catch (error) {
-          console.error(
-            `Error fetching dropdown options for ${field}:`,
-            error
-          );
+          console.error(`Error fetching dropdown options for ${field}:`, error);
           options[field] = []; // Ensure there's always a value
         }
       }
