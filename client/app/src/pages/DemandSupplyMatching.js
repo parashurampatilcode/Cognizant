@@ -159,6 +159,8 @@ function DemandSupplyMatching() {
     DemandType: "DEMAND_TYPE",
     DemandStatus: "DEMAND_STATUS",
     Grades: "GRADE",
+    IncludedInForecast: "YES_NO",
+    CrossSkillRequired: "YES_NO",
   };
 
   useEffect(() => {
