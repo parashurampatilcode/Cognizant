@@ -153,26 +153,45 @@ router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
 });
 
 router.post("/update", async (req, res) => {
-  const {
-    SoId,
-    SOLineStatus,
-    DemandType,
-    DemandStatus,
-    FulfilmentPlan,
-    DemandCategory,
-    SupplySource,
-    RotationSO,
-    SupplyAccount,
-    IdentifiedAssoIdextCandidate,
-    Identified_assoc_name,
-    Grades,
-    EffMonth,
-    JoiningAllocationDate,
-    AllocationWeek,
-    IncludedInForecast,
-    CrossSkillRequired,
-    RemarksDetails,
-  } = req.body;
+  console.log("Request body:", req.body); 
+  // const {
+  //   SoId,
+  //   SOLineStatus,
+  //   DemandType,
+  //   DemandStatus,
+  //   FulfilmentPlan,
+  //   DemandCategory,
+  //   SupplySource,
+  //   RotationSO,
+  //   SupplyAccount,
+  //   IdentifiedAssoIdextCandidate,
+  //   Identified_assoc_name,
+  //   Grades,
+  //   EffMonth,
+  //   JoiningAllocationDate,
+  //   AllocationWeek,
+  //   IncludedInForecast,
+  //   CrossSkillRequired,
+  //   RemarksDetails,
+  // } = req.body;
+  const SoId = req.body.SoId;
+  const SOLineStatus = req.body.SOLineStatus;
+  const DemandType = req.body["Demand Type"];
+  const DemandStatus = req.body["Demand Status"];
+  const FulfilmentPlan = req.body["Fulfilment Plan"];
+  const DemandCategory = req.body["Demand Category"];
+  const SupplySource = req.body["Supply Source"];
+  const RotationSO = req.body["Rotation So"]
+  const SupplyAccount = req.body["Supply Account"];
+  const IdentifiedAssoIdExtCandidate = req.body["Identified Asso Id Ext Candidate"];
+  const IdentifiedAssocName = req.body["Identified Assoc Name"];
+  const Grades = req.body.Grades;
+  const EffMonth = req.body["Eff Month"];
+  const AllocationDate = req.body["Allocation Date"];
+  const AllocationWeek = req.body["Allocation Week"];
+  const IncludedInForecast = req.body["Included In Forecast"];
+  const CrossSkillRequired = req.body["Cross Skill Required"];
+  const RemarksDetails = req.body["Remarks Details"];
 
   try {
     const query = `
@@ -190,17 +209,17 @@ router.post("/update", async (req, res) => {
       SupplySource,
       RotationSO,
       SupplyAccount,
-      IdentifiedAssoIdextCandidate,
-      Identified_assoc_name,
+      IdentifiedAssoIdExtCandidate,
+      IdentifiedAssocName,
       Grades,
       EffMonth,
-      JoiningAllocationDate,
+      AllocationDate,
       AllocationWeek,
       IncludedInForecast,
       CrossSkillRequired,
       RemarksDetails,
     ];
-
+    console.log("params",params)
     await pool.query(query, params);
     res.status(200).json({ message: "Row updated successfully." });
   } catch (error) {

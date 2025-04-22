@@ -125,21 +125,21 @@ const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
     setDate(newDate);
     if (newDate) {
       // Only update AllocationWeek if the field is JoiningAllocationDate
-      if (field === "JoiningAllocationDate") {
+      if (field === "Allocation Date") {
         const weekNumber = getWeekOfMonth(newDate);
         const monthName = newDate.toLocaleString("default", { month: "short" });
         const allocationWeek = `${monthName}-Week ${weekNumber}`;
         gridApi.setEditCellValue({
           id,
-          field: "AllocationWeek",
+          field: "Allocation Week",
           value: allocationWeek,
         });
       }
-    } else if (field === "JoiningAllocationDate") {
+    } else if (field === "Allocation Date") {
       // Only clear AllocationWeek if JoiningAllocationDate is cleared
       gridApi.setEditCellValue({
         id,
-        field: "AllocationWeek",
+        field: "Allocation Week",
         value: "",
       });
     }
@@ -189,12 +189,14 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
         const response = await api.get("/employees/getEmployeeById", {
           params: { employeeId: inputValue },
         });
-
+        console.log("************************************");
+        console.log(gridApi.getAllColumns());
+        console.log("************************************");
         if (response.data && response.data.employee_name) {
           // Update the name field
           gridApi.setEditCellValue({
             id,
-            field: "Identified_assoc_name",
+            field: "Identified Assoc Name",
             value: response.data.employee_name,
           });
           // Update the grade field
@@ -207,7 +209,7 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
           // Clear employee name and grade if no match found
           gridApi.setEditCellValue({
             id,
-            field: "Identified_assoc_name",
+            field: "Identified Assoc Name",
             value: "",
           });
           gridApi.setEditCellValue({
@@ -221,7 +223,7 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
         // Clear employee name and grade in case of error
         gridApi.setEditCellValue({
           id,
-          field: "Identified_assoc_name",
+          field: "Identified Assoc Name",
           value: "",
         });
         gridApi.setEditCellValue({
@@ -273,7 +275,7 @@ function DemandSupplyMatching() {
   const [auditLoading, setAuditLoading] = useState(false);
 
   const [dropdownOptions, setDropdownOptions] = useState({});
-  const editableColumns = [
+  const editableColumns1 = [
     "DemandType",
     "DemandStatus",
     "FulfilmentPlan",
@@ -291,7 +293,28 @@ function DemandSupplyMatching() {
     "CrossSkillRequired",
     "RemarksDetails",
   ];
-  const fieldToDropdownTypeMap = {
+
+  const editableColumns = [
+    "Demand Type",
+    "Demand Status",
+    "Fulfilment Plan",
+    "Demand Category",
+    "Supply Source",
+    "Rotation So",
+    "Supply Account",
+    "Identified Asso Id Ext Candidate",
+    "Identified Assoc Name",
+    "Grades",
+    "Eff Month",
+    "Allocation Date",
+    "Allocation Week",
+    "Included In Forecast",
+    "Cross Skill Required",
+    "Remarks Details",
+  ];
+
+
+  const fieldToDropdownTypeMap1 = {
     DemandCategory: "DEMAND_CATEGORY",
     FulfilmentPlan: "FULFILMENT_PLAN",
     SupplySource: "SUPPLY_SOURCE",
@@ -300,6 +323,17 @@ function DemandSupplyMatching() {
     Grades: "GRADE",
     IncludedInForecast: "YES_NO",
     CrossSkillRequired: "YES_NO",
+  };
+
+  const fieldToDropdownTypeMap = {
+    "Demand Category": "DEMAND_CATEGORY",
+    "Fulfilment Plan": "FULFILMENT_PLAN",
+    "Supply Source": "SUPPLY_SOURCE",
+    "Demand Type": "DEMAND_TYPE",
+    "Demand Status": "DEMAND_STATUS",
+    Grades: "GRADE",
+    "Included In Forecast": "YES_NO",
+    "Cross Skill Required": "YES_NO",
   };
 
   useEffect(() => {
@@ -382,7 +416,7 @@ function DemandSupplyMatching() {
         if (response.data.length > 0) {
           let cols = Object.keys(response.data[0]).map((key) => ({
             field: key,
-            headerName: key.replace(/_/g, " ").toUpperCase(),
+            headerName: key,
             width: 150,
           }));
           setColumns(cols);
@@ -395,6 +429,7 @@ function DemandSupplyMatching() {
   }, []);
 
   const handleEditClick = (id) => () => {
+    
     setRowModesModel((prevModel) => ({
       ...prevModel,
       [id]: { mode: "edit" },
@@ -406,7 +441,7 @@ function DemandSupplyMatching() {
       const updatedRow = data.find((row) => row.item_id === id);
       const payload = {
         SoId: updatedRow["So Id"],
-        SOLineStatus: updatedRow["SO Line Status"],
+        SOLineStatus: updatedRow["So Line Status"],
         ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
@@ -501,7 +536,7 @@ function DemandSupplyMatching() {
     try {
       const payload = {
         SoId: updatedRow["So Id"],
-        SOLineStatus: updatedRow["SO Line Status"],
+        SOLineStatus: updatedRow["So Line Status"],
         ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
@@ -643,7 +678,7 @@ function DemandSupplyMatching() {
           ? "editable-cell"
           : null,
         renderEditCell:
-          col.field === "IdentifiedAssoIdextCandidate"
+          col.field === "Identified Asso Id Ext Candidate"
             ? (params) => (
                 <EmployeeIdEditCell
                   field={params.field}
@@ -662,7 +697,7 @@ function DemandSupplyMatching() {
                   options={dropdownOptions[col.field] || []}
                 />
               )
-            : col.field === "JoiningAllocationDate" || col.field === "EffMonth"
+            : col.field === "Allocation Date" || col.field === "Eff Month"
             ? (params) => (
                 <DateFieldEditCell
                   field={params.field}
