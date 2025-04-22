@@ -4,7 +4,7 @@ const pool = require("../config/db");
 
 router.get("/", async (req, res) => {
   try {
-    const query = "SELECT * FROM public.demandselectnewppv2()";
+    const query = "SELECT * FROM public.demandselectnewppv3()";
     const { rows } = await pool.query(query);
     res.json(rows);
   } catch (error) {

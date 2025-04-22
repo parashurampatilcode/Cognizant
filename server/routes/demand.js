@@ -163,7 +163,7 @@ router.post("/update", async (req, res) => {
   const SupplySource = req.body["Supply Source"];
   const RotationSO = req.body["Rotation So"]
   const SupplyAccount = req.body["Supply Account"];
-  const IdentifiedAssoIdExtCandidate = req.body["Identified Asso Id Ext Candidate"];
+  const IdentifiedAssoIdExtCandidateId = req.body["Identified Asso Id Ext Candidate Id"];
   const IdentifiedAssocName = req.body["Identified Assoc Name"];
   const Grades = req.body.Grades;
   const EffMonth = req.body["Eff Month"];
@@ -189,7 +189,7 @@ router.post("/update", async (req, res) => {
       SupplySource,
       RotationSO,
       SupplyAccount,
-      IdentifiedAssoIdExtCandidate,
+      IdentifiedAssoIdExtCandidateId,
       IdentifiedAssocName,
       Grades,
       EffMonth,

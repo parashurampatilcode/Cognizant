@@ -282,7 +282,7 @@ function DemandSupplyMatching() {
     "Supply Source",
     "Rotation So",
     "Supply Account",
-    "Identified Asso Id Ext Candidate",
+    "Identified Asso Id Ext Candidate Id",
     "Identified Assoc Name",
     "Grades",
     "Eff Month",
@@ -647,7 +647,7 @@ function DemandSupplyMatching() {
           ? "editable-cell"
           : null,
         renderEditCell:
-          col.field === "Identified Asso Id Ext Candidate"
+          col.field === "Identified Asso Id Ext Candidate Id"
             ? (params) => (
                 <EmployeeIdEditCell
                   field={params.field}
