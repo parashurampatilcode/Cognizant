@@ -153,7 +153,6 @@ router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
 });
 
 router.post("/update", async (req, res) => {
-  
   const SoId = req.body.SoId;
   const SOLineStatus = req.body.SOLineStatus;
   const DemandType = req.body["Demand Type"];
@@ -161,9 +160,10 @@ router.post("/update", async (req, res) => {
   const FulfilmentPlan = req.body["Fulfilment Plan"];
   const DemandCategory = req.body["Demand Category"];
   const SupplySource = req.body["Supply Source"];
-  const RotationSO = req.body["Rotation So"]
+  const RotationSO = req.body["Rotation So"];
   const SupplyAccount = req.body["Supply Account"];
-  const IdentifiedAssoIdExtCandidateId = req.body["Identified Asso Id Ext Candidate Id"];
+  const IdentifiedAssoIdExtCandidateId =
+    req.body["Identified Asso Id Ext Candidate Id"];
   const IdentifiedAssocName = req.body["Identified Assoc Name"];
   const Grades = req.body.Grades;
   const EffMonth = req.body["Eff Month"];
@@ -199,7 +199,7 @@ router.post("/update", async (req, res) => {
       CrossSkillRequired,
       RemarksDetails,
     ];
-    
+
     await pool.query(query, params);
     res.status(200).json({ message: "Row updated successfully." });
   } catch (error) {
@@ -250,11 +250,9 @@ router.post("/audit_insert", async (req, res) => {
   const { soid, status, roles, modifieddate, modifiedby, notes } = req.body;
   // Updated required parameters: make 'status' optional
   if (!soid || !modifieddate || !modifiedby) {
-    return res
-      .status(400)
-      .json({
-        error: "Missing required parameters: soid, modifieddate, or modifiedby",
-      });
+    return res.status(400).json({
+      error: "Missing required parameters: soid, modifieddate, or modifiedby",
+    });
   }
   const auditStatus = status || ""; // default to an empty string if not provided
 
