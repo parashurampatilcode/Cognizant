@@ -250,7 +250,7 @@ const Demand = {
           if (value === undefined || value === "" || value === null) {
             return null;
           }
-
+          /*
           // Handle dates
           if (
             col.toLowerCase().includes("date") &&
@@ -300,6 +300,7 @@ const Demand = {
           ) {
             return value ? parseFloat(value) : null;
           }
+            */
           if (col === "is_active") {
             return true; // Set is_active to true
           }
@@ -334,14 +335,15 @@ const Demand = {
       throw error;
     } finally {
       // Call the stored procedure for DSM Logic (Insert,Update and Archive) after inserting data
-      try {
+      //Not required to call
+      /*try {
         await pool.query("CALL public.demand_update()");
       } catch (error) {
         console.error(
           "Error calling stored procedure: public.demand_update",
           error
         );
-      }
+      }*/
     }
   },
 
