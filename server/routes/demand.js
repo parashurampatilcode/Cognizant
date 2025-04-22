@@ -153,27 +153,7 @@ router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
 });
 
 router.post("/update", async (req, res) => {
-  console.log("Request body:", req.body); 
-  // const {
-  //   SoId,
-  //   SOLineStatus,
-  //   DemandType,
-  //   DemandStatus,
-  //   FulfilmentPlan,
-  //   DemandCategory,
-  //   SupplySource,
-  //   RotationSO,
-  //   SupplyAccount,
-  //   IdentifiedAssoIdextCandidate,
-  //   Identified_assoc_name,
-  //   Grades,
-  //   EffMonth,
-  //   JoiningAllocationDate,
-  //   AllocationWeek,
-  //   IncludedInForecast,
-  //   CrossSkillRequired,
-  //   RemarksDetails,
-  // } = req.body;
+  
   const SoId = req.body.SoId;
   const SOLineStatus = req.body.SOLineStatus;
   const DemandType = req.body["Demand Type"];
@@ -219,7 +199,7 @@ router.post("/update", async (req, res) => {
       CrossSkillRequired,
       RemarksDetails,
     ];
-    console.log("params",params)
+    
     await pool.query(query, params);
     res.status(200).json({ message: "Row updated successfully." });
   } catch (error) {

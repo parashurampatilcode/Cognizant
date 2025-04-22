@@ -189,9 +189,7 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
         const response = await api.get("/employees/getEmployeeById", {
           params: { employeeId: inputValue },
         });
-        console.log("************************************");
-        console.log(gridApi.getAllColumns());
-        console.log("************************************");
+        
         if (response.data && response.data.employee_name) {
           // Update the name field
           gridApi.setEditCellValue({
@@ -275,25 +273,7 @@ function DemandSupplyMatching() {
   const [auditLoading, setAuditLoading] = useState(false);
 
   const [dropdownOptions, setDropdownOptions] = useState({});
-  const editableColumns1 = [
-    "DemandType",
-    "DemandStatus",
-    "FulfilmentPlan",
-    "DemandCategory",
-    "SupplySource",
-    "RotationSO",
-    "SupplyAccount",
-    "IdentifiedAssoIdextCandidate",
-    "Identified_assoc_name",
-    "Grades",
-    "EffMonth",
-    "JoiningAllocationDate",
-    "AllocationWeek",
-    "IncludedInForecast",
-    "CrossSkillRequired",
-    "RemarksDetails",
-  ];
-
+  
   const editableColumns = [
     "Demand Type",
     "Demand Status",
@@ -313,17 +293,6 @@ function DemandSupplyMatching() {
     "Remarks Details",
   ];
 
-
-  const fieldToDropdownTypeMap1 = {
-    DemandCategory: "DEMAND_CATEGORY",
-    FulfilmentPlan: "FULFILMENT_PLAN",
-    SupplySource: "SUPPLY_SOURCE",
-    DemandType: "DEMAND_TYPE",
-    DemandStatus: "DEMAND_STATUS",
-    Grades: "GRADE",
-    IncludedInForecast: "YES_NO",
-    CrossSkillRequired: "YES_NO",
-  };
 
   const fieldToDropdownTypeMap = {
     "Demand Category": "DEMAND_CATEGORY",
