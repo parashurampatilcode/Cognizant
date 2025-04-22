@@ -12,7 +12,7 @@ router.get("/getEmployeeById", async (req, res) => {
     }
 
     const query =
-      "SELECT employee_id, employee_name FROM employees WHERE employee_id = $1";
+      "SELECT employee_id, employee_name, grade FROM employees WHERE employee_id = $1";
     const { rows } = await pool.query(query, [employeeId]);
 
     if (rows.length === 0) {

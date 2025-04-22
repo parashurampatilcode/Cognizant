@@ -185,7 +185,7 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
           value: inputValue,
         });
 
-        // Fetch employee name
+        // Fetch employee name and grade
         const response = await api.get("/employees/getEmployeeById", {
           params: { employeeId: inputValue },
         });
@@ -197,20 +197,36 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
             field: "Identified_assoc_name",
             value: response.data.employee_name,
           });
+          // Update the grade field
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: response.data.grade,
+          });
         } else {
-          // Clear employee name if no match found
+          // Clear employee name and grade if no match found
           gridApi.setEditCellValue({
             id,
             field: "Identified_assoc_name",
             value: "",
           });
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: "",
+          });
         }
       } catch (error) {
         console.error("Error fetching employee name:", error);
-        // Clear employee name in case of error
+        // Clear employee name and grade in case of error
         gridApi.setEditCellValue({
           id,
           field: "Identified_assoc_name",
+          value: "",
+        });
+        gridApi.setEditCellValue({
+          id,
+          field: "Grades",
           value: "",
         });
       } finally {
