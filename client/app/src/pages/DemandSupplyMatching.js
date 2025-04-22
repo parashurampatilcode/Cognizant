@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -164,6 +165,75 @@ const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
   );
 });
 
+const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [inputValue, setInputValue] = useState(value || "");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+  };
+
+  const handleBlur = async () => {
+    if (inputValue && inputValue !== value) {
+      setIsLoading(true);
+      try {
+        // Update the ID field
+        gridApi.setEditCellValue({
+          id,
+          field,
+          value: inputValue,
+        });
+
+        // Fetch employee name
+        const response = await api.get("/employees/getEmployeeById", {
+          params: { employeeId: inputValue },
+        });
+
+        if (response.data && response.data.employee_name) {
+          // Update the name field
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified_assoc_name",
+            value: response.data.employee_name,
+          });
+        } else {
+          // Clear employee name if no match found
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified_assoc_name",
+            value: "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching employee name:", error);
+        // Clear employee name in case of error
+        gridApi.setEditCellValue({
+          id,
+          field: "Identified_assoc_name",
+          value: "",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  return (
+    <TextField
+      value={inputValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder="Enter Employee ID"
+      sx={{ width: "100%" }}
+      disabled={isLoading}
+      InputProps={{
+        endAdornment: isLoading ? <CircularProgress size={20} /> : null,
+      }}
+    />
+  );
+});
+
 function DemandSupplyMatching() {
   const [data, setData] = useState([]);
   const [columns, setColumns] = useState([]);
@@ -187,7 +257,6 @@ function DemandSupplyMatching() {
   const [auditLoading, setAuditLoading] = useState(false);
 
   const [dropdownOptions, setDropdownOptions] = useState({});
-
   const editableColumns = [
     "DemandType",
     "DemandStatus",
@@ -206,7 +275,6 @@ function DemandSupplyMatching() {
     "CrossSkillRequired",
     "RemarksDetails",
   ];
-
   const fieldToDropdownTypeMap = {
     DemandCategory: "DEMAND_CATEGORY",
     FulfilmentPlan: "FULFILMENT_PLAN",
@@ -220,7 +288,6 @@ function DemandSupplyMatching() {
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchAllDropdownOptions = async () => {
       const options = {};
       for (const field in fieldToDropdownTypeMap) {
@@ -270,7 +337,6 @@ function DemandSupplyMatching() {
 
     fetchAllDropdownOptions();
     fetchDropdownData();
-
     return () => {
       isMounted = false;
     };
@@ -295,7 +361,6 @@ function DemandSupplyMatching() {
           }
           return item;
         });
-
         setData(fetchedData);
 
         if (response.data.length > 0) {
@@ -304,14 +369,12 @@ function DemandSupplyMatching() {
             headerName: key.replace(/_/g, " ").toUpperCase(),
             width: 150,
           }));
-
           setColumns(cols);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
   }, []);
 
@@ -333,7 +396,6 @@ function DemandSupplyMatching() {
           return acc;
         }, {}),
       };
-
       try {
         await api.post("/demand/update", payload);
         // Integrate audit procedure call
@@ -350,7 +412,6 @@ function DemandSupplyMatching() {
             "",
         };
         await api.post("/demand/audit_insert", auditPayload);
-
         setRowModesModel((prevModel) => ({
           ...prevModel,
           [id]: { mode: "view" },
@@ -416,13 +477,11 @@ function DemandSupplyMatching() {
           )
       );
     }
-
     return filteredData;
   }, [data, columns, searchText]);
 
   const processRowUpdate = async (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
-
     try {
       const payload = {
         SoId: updatedRow["So Id"],
@@ -432,7 +491,6 @@ function DemandSupplyMatching() {
           return acc;
         }, {}),
       };
-
       await api.post("/demand/update", payload);
       console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
 
@@ -443,7 +501,6 @@ function DemandSupplyMatching() {
             const oldRow = prevData.find(
               (r) => r.item_id === updatedRow.item_id
             );
-
             // Update AllocationWeek only if JoiningAllocationDate has changed
             if (
               updatedRow.JoiningAllocationDate &&
@@ -459,7 +516,6 @@ function DemandSupplyMatching() {
                 .toISOString()
                 .split("T")[0];
             }
-
             if (updatedRow.EffMonth) {
               const effMonthDate = new Date(updatedRow.EffMonth);
               updatedRow.EffMonth = effMonthDate.toISOString().split("T")[0];
@@ -473,7 +529,6 @@ function DemandSupplyMatching() {
       console.error("Error saving row:", error);
       throw error;
     }
-
     return updatedRow;
   };
 
@@ -571,26 +626,36 @@ function DemandSupplyMatching() {
         cellClassName: editableColumns.includes(col.field)
           ? "editable-cell"
           : null,
-        renderEditCell: fieldToDropdownTypeMap[col.field]
-          ? (params) => (
-              <DropdownEditCell
-                field={params.field}
-                value={params.value}
-                id={params.id}
-                api={params.api} // Pass the grid's API object
-                options={dropdownOptions[col.field] || []}
-              />
-            )
-          : col.field === "JoiningAllocationDate" || col.field === "EffMonth"
-          ? (params) => (
-              <DateFieldEditCell
-                field={params.field}
-                value={params.value}
-                id={params.id}
-                api={params.api}
-              />
-            )
-          : undefined,
+        renderEditCell:
+          col.field === "IdentifiedAssoIdextCandidate"
+            ? (params) => (
+                <EmployeeIdEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                />
+              )
+            : fieldToDropdownTypeMap[col.field]
+            ? (params) => (
+                <DropdownEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                  options={dropdownOptions[col.field] || []}
+                />
+              )
+            : col.field === "JoiningAllocationDate" || col.field === "EffMonth"
+            ? (params) => (
+                <DateFieldEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                />
+              )
+            : undefined,
       })),
     ],
     [
@@ -609,7 +674,6 @@ function DemandSupplyMatching() {
       <Typography variant="h4" sx={{ mb: 3 }}>
         Demand Supply Mapping
       </Typography>
-
       <Box
         sx={{
           display: "flex",
@@ -738,20 +802,20 @@ function DemandSupplyMatching() {
             ...col,
             editable: editableColumns.includes(col.field),
           }))}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableVirtualization
           components={{
             Toolbar: () => (
               <GridToolbarContainer
                 sx={{
-                  padding: 1,
                   backgroundColor: "#FFFFFF",
+                  padding: 1,
                   borderBottom: `1px solid #D3D3D3`,
                 }}
               ></GridToolbarContainer>
             ),
           }}
+          disableVirtualization
+          rowsPerPageOptions={[10, 25, 50]}
+          pageSize={10}
           getRowId={(row) => row.item_id}
           editMode="row"
           rowModesModel={rowModesModel}
@@ -766,12 +830,13 @@ function DemandSupplyMatching() {
           }}
         />
       </div>
+
       {/* Audit History Dialog */}
       <Dialog
         open={auditOpen}
         onClose={handleAuditClose}
-        maxWidth="lg" // increased popup width
         fullWidth
+        maxWidth="lg" // increased popup width
       >
         <DialogTitle>Audit History</DialogTitle>
         <DialogContent>
