@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import {
   Box,
   Typography,
@@ -14,6 +20,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 
@@ -39,6 +46,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-columnHeaderTitleContainer": {
       "& .MuiDataGrid-columnHeaderTitle": {
         fontWeight: "bold !important",
+        whiteSpace: "normal", // Allow wrapping
+        wordBreak: "break-word", // Break long words if needed
       },
     },
     backgroundColor: primaryColor,
@@ -57,7 +66,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderBottom: `1px solid ${darkGrey}`,
   },
   "& .MuiDataGrid-columnHeaders": {
-    whiteSpace: "nowrap",
+    whiteSpace: "normal", // Allow wrapping
   },
   "& .editable-cell": {
     backgroundColor: "#FFFDE7 !important", // Light yellow background for editable cells in view mode
@@ -74,6 +83,172 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
       backgroundColor: "#E0E0E0 !important",
     },
 }));
+
+const DropdownEditCell = React.memo(
+  ({ field, value, id, api: gridApi, options }) => {
+    // Ensure the value matches one of the available options
+    const selectedValue = options.some((option) => option.value === value)
+      ? value
+      : "";
+
+    return (
+      <Select
+        value={selectedValue}
+        onChange={(event) => {
+          const newValue = event.target.value;
+          gridApi.setEditCellValue({ id, field, value: newValue });
+        }}
+        sx={{ width: "100%" }}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    );
+  }
+);
+
+function getWeekOfMonth(date) {
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+  const dayOfMonth = date.getDate();
+  let weekNumber = Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
+  return weekNumber;
+}
+
+const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [date, setDate] = useState(value ? new Date(value) : null);
+
+  const handleChange = (newDate) => {
+    setDate(newDate);
+    if (newDate) {
+      // Only update AllocationWeek if the field is JoiningAllocationDate
+      if (field === "Allocation Date") {
+        const weekNumber = getWeekOfMonth(newDate);
+        const monthName = newDate.toLocaleString("default", { month: "short" });
+        const allocationWeek = `${monthName}-Week ${weekNumber}`;
+        gridApi.setEditCellValue({
+          id,
+          field: "Allocation Week",
+          value: allocationWeek,
+        });
+      }
+    } else if (field === "Allocation Date") {
+      // Only clear AllocationWeek if JoiningAllocationDate is cleared
+      gridApi.setEditCellValue({
+        id,
+        field: "Allocation Week",
+        value: "",
+      });
+    }
+
+    // Update the actual date field
+    gridApi.setEditCellValue({
+      id,
+      field,
+      value: newDate ? newDate.toISOString().split("T")[0] : null,
+    });
+  };
+
+  return (
+    <TextField
+      type="date"
+      value={date ? date.toISOString().split("T")[0] : ""}
+      onChange={(e) => {
+        const newDate = e.target.value ? new Date(e.target.value) : null;
+        handleChange(newDate);
+      }}
+      sx={{ width: "100%" }}
+    />
+  );
+});
+
+const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [inputValue, setInputValue] = useState(value || "");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+  };
+
+  const handleBlur = async () => {
+    if (inputValue && inputValue !== value) {
+      setIsLoading(true);
+      try {
+        // Update the ID field
+        gridApi.setEditCellValue({
+          id,
+          field,
+          value: inputValue,
+        });
+
+        // Fetch employee name and grade
+        const response = await api.get("/employees/getEmployeeById", {
+          params: { employeeId: inputValue },
+        });
+        
+        if (response.data && response.data.employee_name) {
+          // Update the name field
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified Assoc Name",
+            value: response.data.employee_name,
+          });
+          // Update the grade field
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: response.data.grade,
+          });
+        } else {
+          // Clear employee name and grade if no match found
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified Assoc Name",
+            value: "",
+          });
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching employee name:", error);
+        // Clear employee name and grade in case of error
+        gridApi.setEditCellValue({
+          id,
+          field: "Identified Assoc Name",
+          value: "",
+        });
+        gridApi.setEditCellValue({
+          id,
+          field: "Grades",
+          value: "",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  return (
+    <TextField
+      value={inputValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder="Enter Employee ID"
+      sx={{ width: "100%" }}
+      disabled={isLoading}
+      InputProps={{
+        endAdornment: isLoading ? <CircularProgress size={20} /> : null,
+      }}
+    />
+  );
+});
 
 function DemandSupplyMatching() {
   const [data, setData] = useState([]);
@@ -97,59 +272,57 @@ function DemandSupplyMatching() {
   const [auditData, setAuditData] = useState([]);
   const [auditLoading, setAuditLoading] = useState(false);
 
-  const [dropdownOptions, setDropdownOptions] = useState({}); // Store dropdown options here
-
+  const [dropdownOptions, setDropdownOptions] = useState({});
+  
   const editableColumns = [
-    "DemandType",
-    "DemandStatus",
-    "FulfilmentPlan",
-    "DemandCategory",
-    "SupplySource",
-    "RotationSO",
-    "SupplyAccount",
-    "IdentifiedAssoIdextCandidate",
-    "Identified_assoc_name",
+    "Demand Type",
+    "Demand Status",
+    "Fulfilment Plan",
+    "Demand Category",
+    "Supply Source",
+    "Rotation So",
+    "Supply Account",
+    "Identified Asso Id Ext Candidate Id",
+    "Identified Assoc Name",
     "Grades",
-    "EffMonth",
-    "JoiningAllocationDate",
-    "AllocationWeek",
-    "IncludedInForecast",
-    "CrossSkillRequired",
-    "RemarksDetails",
+    "Eff Month",
+    "Allocation Date",
+    "Allocation Week",
+    "Included In Forecast",
+    "Cross Skill Required",
+    "Remarks Details",
   ];
 
-  const fieldToDropdownTypeMap = {
-    DemandCategory: "DEMAND_CATEGORY",
-    FulfilmentPlan: "FULFILMENT_PLAN",
-    SupplySource: "SUPPLY_SOURCE",
-    DemandType: "DEMAND_TYPE",
-    DemandStatus: "DEMAND_STATUS",
-    Grades: "GRADE",
-  };
 
-  const fetchDropdownOptions = async (fieldName) => {
-    try {
-      const response = await api.get(`/demand/dropdown`, {
-        params: { fieldName },
-      });
-      return response.data.map((item) => ({
-        value: item.key_value,
-        label: item.description,
-      }));
-    } catch (error) {
-      console.error(`Error fetching dropdown options for ${fieldName}:`, error);
-      return [];
-    }
+  const fieldToDropdownTypeMap = {
+    "Demand Category": "DEMAND_CATEGORY",
+    "Fulfilment Plan": "FULFILMENT_PLAN",
+    "Supply Source": "SUPPLY_SOURCE",
+    "Demand Type": "DEMAND_TYPE",
+    "Demand Status": "DEMAND_STATUS",
+    Grades: "GRADE",
+    "Included In Forecast": "YES_NO",
+    "Cross Skill Required": "YES_NO",
   };
 
   useEffect(() => {
     let isMounted = true;
-
     const fetchAllDropdownOptions = async () => {
       const options = {};
       for (const field in fieldToDropdownTypeMap) {
         const dropdownType = fieldToDropdownTypeMap[field];
-        options[field] = await fetchDropdownOptions(dropdownType);
+        try {
+          const response = await api.get(`/demand/dropdown`, {
+            params: { fieldName: dropdownType },
+          });
+          options[field] = response.data.map((item) => ({
+            value: item.key_value,
+            label: item.description,
+          }));
+        } catch (error) {
+          console.error(`Error fetching dropdown options for ${field}:`, error);
+          options[field] = []; // Ensure there's always a value
+        }
       }
       if (isMounted) {
         setDropdownOptions(options);
@@ -181,9 +354,8 @@ function DemandSupplyMatching() {
       }
     };
 
-    fetchDropdownData();
     fetchAllDropdownOptions();
-
+    fetchDropdownData();
     return () => {
       isMounted = false;
     };
@@ -193,74 +365,89 @@ function DemandSupplyMatching() {
     const fetchData = async () => {
       try {
         const response = await api.get("/demandselect");
-        setData(response.data);
+        let fetchedData = response.data;
+
+        fetchedData = fetchedData.map((item) => {
+          if (item.JoiningAllocationDate) {
+            const joiningDate = new Date(item.JoiningAllocationDate);
+            const weekNumber = getWeekOfMonth(joiningDate);
+            const monthName = joiningDate.toLocaleString("default", {
+              month: "short",
+            });
+            item.AllocationWeek = `${monthName}-Week ${weekNumber}`;
+            item.JoiningAllocationDate =
+              item.JoiningAllocationDate.split("T")[0];
+          }
+          return item;
+        });
+        setData(fetchedData);
 
         if (response.data.length > 0) {
           let cols = Object.keys(response.data[0]).map((key) => ({
             field: key,
-            headerName: key.replace(/_/g, " ").toUpperCase(),
+            headerName: key,
             width: 150,
           }));
-
           setColumns(cols);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
   }, []);
 
   const handleEditClick = (id) => () => {
+    
     setRowModesModel((prevModel) => ({
       ...prevModel,
       [id]: { mode: "edit" },
     }));
   };
 
-  const handleSaveClick = (id) => async () => {
-    const updatedRow = data.find((row) => row.item_id === id);
-    const payload = {
-      SoId: updatedRow.SoId,
-      SOLineStatus: updatedRow.SOLineStatus,
-      ...editableColumns.reduce((acc, col) => {
-        acc[col] = updatedRow[col];
-        return acc;
-      }, {}),
-    };
-
-    try {
-      await api.post("/demand/update", payload);
-      // Integrate audit procedure call
-      const auditPayload = {
-        soid: updatedRow.SoId,
-        status: updatedRow.SOLineStatus,
-        roles: null,
-        modifieddate: new Date().toISOString(),
-        modifiedby: pdlName,
-        notes:
-          updatedRow.RemarksDetails ||
-          updatedRow.remarks ||
-          updatedRow.remarks_details ||
-          "",
+  const handleSaveClick = useCallback(
+    (id) => async () => {
+      const updatedRow = data.find((row) => row.item_id === id);
+      const payload = {
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["So Line Status"],
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
       };
-      await api.post("/demand/audit_insert", auditPayload);
-
-      setRowModesModel((prevModel) => ({
-        ...prevModel,
-        [id]: { mode: "view" },
-      }));
-      console.log(`Row with id ${id} saved successfully.`);
-    } catch (error) {
-      console.error("Error saving row:", error);
-    }
-  };
+      try {
+        await api.post("/demand/update", payload);
+        // Integrate audit procedure call
+        const auditPayload = {
+          soid: updatedRow["So Id"],
+          status: updatedRow["So Line Status"],
+          roles: null,
+          modifieddate: new Date().toISOString(),
+          modifiedby: pdlName,
+          notes:
+            updatedRow.RemarksDetails ||
+            updatedRow.remarks ||
+            updatedRow.remarks_details ||
+            "",
+        };
+        await api.post("/demand/audit_insert", auditPayload);
+        setRowModesModel((prevModel) => ({
+          ...prevModel,
+          [id]: { mode: "view" },
+        }));
+        console.log(`Row with id ${id} saved successfully.`);
+      } catch (error) {
+        console.error("Error saving row:", error);
+      }
+    },
+    [data, editableColumns, pdlName, setRowModesModel]
+  );
 
   const handleAuditClick = (id) => async () => {
     const row = data.find((r) => r.item_id === id);
     if (!row) return;
-    const uniqueId = row.SoId;
+    const uniqueId = row["So Id"];
     setSelectedUnique(uniqueId);
     setAuditOpen(true);
     setAuditLoading(true);
@@ -282,17 +469,20 @@ function DemandSupplyMatching() {
     setSelectedUnique(null);
   };
 
-  const handleCancelClick = (id) => () => {
-    setRowModesModel((prevModel) => ({
-      ...prevModel,
-      [id]: { mode: "view", ignoreModifications: true },
-    }));
+  const handleCancelClick = useCallback(
+    (id) => () => {
+      setRowModesModel((prevModel) => ({
+        ...prevModel,
+        [id]: { mode: "view", ignoreModifications: true },
+      }));
 
-    const editedRow = data.find((row) => row.item_id === id);
-    if (editedRow?.isNew) {
-      setData(data.filter((row) => row.item_id !== id));
-    }
-  };
+      const editedRow = data.find((row) => row.item_id === id);
+      if (editedRow?.isNew) {
+        setData(data.filter((row) => row.item_id !== id));
+      }
+    },
+    [data, setRowModesModel]
+  );
 
   const filteredRows = useMemo(() => {
     let filteredData = data;
@@ -307,36 +497,58 @@ function DemandSupplyMatching() {
           )
       );
     }
-
     return filteredData;
   }, [data, columns, searchText]);
 
   const processRowUpdate = async (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
-
     try {
       const payload = {
-        SoId: updatedRow.SoId,
-        SOLineStatus: updatedRow.SOLineStatus,
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["So Line Status"],
         ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
         }, {}),
       };
-
       await api.post("/demand/update", payload);
       console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
 
       setData((prevData) =>
-        prevData.map((row) =>
-          row.item_id === updatedRow.item_id ? updatedRow : row
-        )
+        prevData.map((row) => {
+          if (row.item_id === updatedRow.item_id) {
+            // Find the old row to compare JoiningAllocationDate
+            const oldRow = prevData.find(
+              (r) => r.item_id === updatedRow.item_id
+            );
+            // Update AllocationWeek only if JoiningAllocationDate has changed
+            if (
+              updatedRow.JoiningAllocationDate &&
+              oldRow.JoiningAllocationDate !== updatedRow.JoiningAllocationDate
+            ) {
+              const joiningDate = new Date(updatedRow.JoiningAllocationDate);
+              const weekNumber = getWeekOfMonth(joiningDate);
+              const monthName = joiningDate.toLocaleString("default", {
+                month: "short",
+              });
+              updatedRow.AllocationWeek = `${monthName}-Week ${weekNumber}`;
+              updatedRow.JoiningAllocationDate = joiningDate
+                .toISOString()
+                .split("T")[0];
+            }
+            if (updatedRow.EffMonth) {
+              const effMonthDate = new Date(updatedRow.EffMonth);
+              updatedRow.EffMonth = effMonthDate.toISOString().split("T")[0];
+            }
+            return updatedRow;
+          }
+          return row;
+        })
       );
     } catch (error) {
       console.error("Error saving row:", error);
       throw error;
     }
-
     return updatedRow;
   };
 
@@ -382,30 +594,6 @@ function DemandSupplyMatching() {
     } catch (error) {
       console.error("Error fetching report data:", error);
     }
-  };
-
-  const DropdownEditCell = ({ field, value, id, api: gridApi, options }) => {
-    // Ensure the value matches one of the available options
-    const selectedValue = options.some((option) => option.value === value)
-      ? value
-      : "";
-
-    return (
-      <Select
-        value={selectedValue}
-        onChange={(event) => {
-          const newValue = event.target.value;
-          gridApi.setEditCellValue({ id, field, value: newValue });
-        }}
-        sx={{ width: "100%" }}
-      >
-        {options.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    );
   };
 
   const columnsWithActions = useMemo(
@@ -458,20 +646,47 @@ function DemandSupplyMatching() {
         cellClassName: editableColumns.includes(col.field)
           ? "editable-cell"
           : null,
-        renderEditCell: fieldToDropdownTypeMap[col.field]
-          ? (params) => (
-              <DropdownEditCell
-                field={params.field}
-                value={params.value}
-                id={params.id}
-                api={params.api} // Pass the grid's API object
-                options={dropdownOptions[params.field] || []} // Pass the options
-              />
-            )
-          : undefined,
+        renderEditCell:
+          col.field === "Identified Asso Id Ext Candidate Id"
+            ? (params) => (
+                <EmployeeIdEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                />
+              )
+            : fieldToDropdownTypeMap[col.field]
+            ? (params) => (
+                <DropdownEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                  options={dropdownOptions[col.field] || []}
+                />
+              )
+            : col.field === "Allocation Date" || col.field === "Eff Month"
+            ? (params) => (
+                <DateFieldEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                />
+              )
+            : undefined,
       })),
     ],
-    [columns, rowModesModel, data, editableColumns, dropdownOptions]
+    [
+      columns,
+      rowModesModel,
+      data,
+      editableColumns,
+      handleSaveClick,
+      handleCancelClick,
+      dropdownOptions,
+    ]
   );
 
   return (
@@ -479,7 +694,6 @@ function DemandSupplyMatching() {
       <Typography variant="h4" sx={{ mb: 3 }}>
         Demand Supply Mapping
       </Typography>
-
       <Box
         sx={{
           display: "flex",
@@ -608,20 +822,20 @@ function DemandSupplyMatching() {
             ...col,
             editable: editableColumns.includes(col.field),
           }))}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableVirtualization
           components={{
             Toolbar: () => (
               <GridToolbarContainer
                 sx={{
-                  padding: 1,
                   backgroundColor: "#FFFFFF",
+                  padding: 1,
                   borderBottom: `1px solid #D3D3D3`,
                 }}
               ></GridToolbarContainer>
             ),
           }}
+          disableVirtualization
+          rowsPerPageOptions={[10, 25, 50]}
+          pageSize={10}
           getRowId={(row) => row.item_id}
           editMode="row"
           rowModesModel={rowModesModel}
@@ -636,12 +850,13 @@ function DemandSupplyMatching() {
           }}
         />
       </div>
+
       {/* Audit History Dialog */}
       <Dialog
         open={auditOpen}
         onClose={handleAuditClose}
-        maxWidth="lg" // increased popup width
         fullWidth
+        maxWidth="lg" // increased popup width
       >
         <DialogTitle>Audit History</DialogTitle>
         <DialogContent>

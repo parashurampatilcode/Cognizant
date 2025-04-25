@@ -143,12 +143,12 @@ const PDPVCDPSupplyTable = ({ reportData, tableName }) => {
           padding: 1,
         }}
       >
-        <ExportIcon
+        {/* <ExportIcon
           exportRows={rows}
           exportColumns={columns}
           exportTableRef={tableRef}
           reportName="PDPVCDPSupply"
-        />
+        /> */}
       </Box>
       
 
