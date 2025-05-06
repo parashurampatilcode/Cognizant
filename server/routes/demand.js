@@ -63,7 +63,8 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
 
     // Step 3: Call the stored procedure
     try {
-      await pool.query("CALL public.dsm_excel_db_load()");
+      // await pool.query("CALL public.transform_so_stage_to_main()");
+      await pool.query("select * from  public.transform_so_stage_to_main()");
     } catch (error) {
       console.error("Error calling stored procedure:", error);
       return res.status(500).json({ error: "Error calling stored procedure" });

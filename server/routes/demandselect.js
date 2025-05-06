@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 router.get("/parentCustomers", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT parent_customer FROM so_data_main WHERE parent_customer IS NOT NULL ORDER BY parent_customer ASC;";
+      "SELECT DISTINCT parent_customer FROM ds_so_data_main WHERE parent_customer IS NOT NULL ORDER BY parent_customer ASC;";
     const { rows } = await pool.query(query);
 
     res.json(rows.map((row) => row.parent_customer));
@@ -29,7 +29,8 @@ router.get("/parentCustomers", async (req, res) => {
 router.get("/businessUnitDescs", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT businessunit_desc FROM so_data_main WHERE businessunit_desc IS NOT NULL ORDER BY businessunit_desc ASC";
+      "SELECT DISTINCT bu FROM ds_so_data_main WHERE bu IS NOT NULL ORDER BY bu ASC";
+      //it should be businessunit_desc, column missing in the table ds_so_data_main
     const { rows } = await pool.query(query);
 
     res.json(rows.map((row) => row.businessunit_desc));
@@ -42,7 +43,8 @@ router.get("/businessUnitDescs", async (req, res) => {
 router.get("/pdlNames", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT pdl_name FROM so_data_main WHERE pdl_name IS NOT NULL ORDER BY pdl_name ASC";
+      "SELECT DISTINCT project_name FROM ds_so_data_main WHERE project_name IS NOT NULL ORDER BY project_name ASC";
+      //it should be pdl_name, column missing in the table ds_so_data_main
     const { rows } = await pool.query(query);
 
     res.json(rows.map((row) => row.pdl_name));
@@ -55,7 +57,7 @@ router.get("/pdlNames", async (req, res) => {
 router.get("/offOns", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT off_on FROM so_data_main WHERE off_on IS NOT NULL ORDER BY off_on ASC";
+      "SELECT DISTINCT off_on FROM ds_so_data_main WHERE off_on IS NOT NULL ORDER BY off_on ASC";
     const { rows } = await pool.query(query);
 
     res.json(rows.map((row) => row.off_on));
