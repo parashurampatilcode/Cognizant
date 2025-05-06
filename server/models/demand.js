@@ -3,7 +3,7 @@ const pool = require("../config/db");
 const Demand = {
   getAll: async () => {
     try {
-      const query = 'SELECT * FROM "so_data_temp"';
+      const query = 'SELECT * FROM "so_stage"';
       const { rows } = await pool.query(query);
       return rows;
     } catch (error) {
@@ -33,7 +33,7 @@ const Demand = {
         "off_on",
         "geography",
         "so_grade",
-        "tmratecard",
+        "t_m_ratecard", // changed
         "job_code",
         "flagged_for_recruitment",
         "when_flagged_for_recruitment",
@@ -68,15 +68,15 @@ const Demand = {
         "supply_source",
         "rotation_so",
         "supply_account",
-        "identified_assoc_idexternal_candidate_id",
+        "identified_assoc_id_external_candidate_id", // changed
         "identified_assoc_name",
-        "grade_1",
+      // "grade_1",
         "eff_month",
         "joining_allocation_date",
         "allocation_week",
-        "included_in_forecast_yn",
-        "cross_skill_required_yesno",
-        "remarksdetails",
+        "included_in_forecast_y_n", // changed
+        "cross_skill_required_yes_no", //changed
+        "remarks_details",
         "cluster_description",
         "owning_organization",
         "pool_id",
@@ -117,7 +117,7 @@ const Demand = {
         "country",
         "preferred_location_1",
         "preferred_location_2",
-        "fulfilmentcancellation_month",
+        "fulfilment_cancellation_month",
         "week_name",
         "requirement_end_date",
         "so_billability",
@@ -218,16 +218,16 @@ const Demand = {
         "rev_geo",
         "rev_grade",
         "short_fuse_demands",
-        "ageing_1",
+        //"ageing_1",
         "grouping",
         "top_accounts",
         "interview_status",
         "demand_type_1",
-        "created_date",
-        "created_by",
-        "modified_date",
-        "modified_by",
-        "is_active", // Added is_active
+       // "created_date",
+        //"created_by",
+       // "modified_date",
+       // "modified_by",
+       // "is_active", // Added is_active
       ];
 
       const allValues = dataArray.map((data, rowIndex) => {
@@ -319,7 +319,7 @@ const Demand = {
       });
 
       const query = `
-        INSERT INTO "so_data_temp" (${columnNames
+        INSERT INTO "so_stage" (${columnNames
           .map((col) => `"${col}"`)
           .join(", ")})
         VALUES ${placeholders.join(", ")}

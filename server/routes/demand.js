@@ -28,7 +28,7 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
 
     // Step 1: Truncate the table
     try {
-      await pool.query('TRUNCATE TABLE "so_data_temp"');
+      await pool.query('TRUNCATE TABLE "so_stage"');
     } catch (error) {
       console.error("Error truncating table:", error);
       return res.status(500).json({ error: "Error truncating table" });
