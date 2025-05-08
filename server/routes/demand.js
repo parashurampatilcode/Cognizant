@@ -21,6 +21,7 @@ router.get("/", async (req, res) => {
 
 // Upload Excel and process data
 router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
+  console.log("Received file:", req.file); // Debug
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded." });
@@ -29,6 +30,7 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     // Step 1: Truncate the table
     try {
       await pool.query('TRUNCATE TABLE "so_stage"');
+      console.log("Table truncated successfully.");
     } catch (error) {
       console.error("Error truncating table:", error);
       return res.status(500).json({ error: "Error truncating table" });
@@ -65,6 +67,7 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     try {
       // await pool.query("CALL public.transform_so_stage_to_main()");
       await pool.query("select * from  public.transform_so_stage_to_main()");
+      console.log("Stored procedure called successfully.");
     } catch (error) {
       console.error("Error calling stored procedure:", error);
       return res.status(500).json({ error: "Error calling stored procedure" });
@@ -176,7 +179,7 @@ router.post("/update", async (req, res) => {
 
   try {
     const query = `
-      CALL public.demand_update(
+      CALL public.update_so_data_main(
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
       )
     `;
@@ -220,7 +223,7 @@ router.get("/dropdown", async (req, res) => {
   try {
     console.log(`Fetching dropdown values for field: ${fieldName}`); // Debug log
     const dropdownValues = await Demand.getDropdownValuesByType(fieldName);
-    console.log(`Dropdown values for ${fieldName}:`, dropdownValues); // Debug log
+    //console.log(`Dropdown values for ${fieldName}:`, dropdownValues); // Debug log
     res.json(dropdownValues);
   } catch (error) {
     console.error("Error fetching dropdown values:", error);
