@@ -238,8 +238,8 @@ router.get("/audit_history", async (req, res) => {
   }
   try {
     const query = `
-      SELECT auditid, so_id, status, roles, modified_date, modified_by, comments
-      FROM public.sdm_audit_history
+      SELECT sdm_audit_history as auditid, so_id, status, roles, modified_date, modified_by, comments
+      FROM public.ds_sdm_audit_history
       WHERE so_id = $1
     `;
     const { rows } = await pool.query(query, [unique_id]);
