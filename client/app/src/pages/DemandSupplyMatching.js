@@ -1,7 +1,27 @@
-// filepath: c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\pages\DemandSupplyMatching.js
-// DemandSupplyMatching.js
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Box, Typography, InputBase } from "@mui/material";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  Box,
+  Typography,
+  InputBase,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 import {
@@ -9,15 +29,16 @@ import {
   GridToolbarContainer,
   GridActionsCellItem,
 } from "@mui/x-data-grid";
-import axios from "axios";
+import api from "../api";
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
 
-const primaryColor = "#005EB8"; // Cognizant's primary blue
+const primaryColor = "#005EB8";
 const darkGrey = "#D3D3D3";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
@@ -25,6 +46,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-columnHeaderTitleContainer": {
       "& .MuiDataGrid-columnHeaderTitle": {
         fontWeight: "bold !important",
+        whiteSpace: "normal", // Allow wrapping
+        wordBreak: "break-word", // Break long words if needed
       },
     },
     backgroundColor: primaryColor,
@@ -43,9 +66,189 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderBottom: `1px solid ${darkGrey}`,
   },
   "& .MuiDataGrid-columnHeaders": {
-    whiteSpace: "nowrap",
+    whiteSpace: "normal", // Allow wrapping
   },
+  "& .editable-cell": {
+    backgroundColor: "#FFFDE7 !important", // Light yellow background for editable cells in view mode
+    "&:hover": {
+      backgroundColor: "#FFF9C4 !important",
+    },
+  },
+  "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell--editable": {
+    backgroundColor: "#FFF59D !important", // Dark yellow background for editable cells in edit mode
+    border: "1px solid #005EB8",
+  },
+  "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell:not(.MuiDataGrid-cell--editable)":
+    {
+      backgroundColor: "#E0E0E0 !important",
+    },
 }));
+
+const DropdownEditCell = React.memo(
+  ({ field, value, id, api: gridApi, options }) => {
+    // Ensure the value matches one of the available options
+    const selectedValue = options.some((option) => option.value === value)
+      ? value
+      : "";
+
+    return (
+      <Select
+        value={selectedValue}
+        onChange={(event) => {
+          const newValue = event.target.value;
+          gridApi.setEditCellValue({ id, field, value: newValue });
+        }}
+        sx={{ width: "100%" }}
+      >
+        {options.map((option) => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    );
+  }
+);
+
+function getWeekOfMonth(date) {
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+  const dayOfMonth = date.getDate();
+  let weekNumber = Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
+  return weekNumber;
+}
+
+const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [date, setDate] = useState(value ? new Date(value) : null);
+
+  const handleChange = (newDate) => {
+    setDate(newDate);
+    if (newDate) {
+      // Only update AllocationWeek if the field is JoiningAllocationDate
+      if (field === "Allocation Date") {
+        const weekNumber = getWeekOfMonth(newDate);
+        const monthName = newDate.toLocaleString("default", { month: "short" });
+        const allocationWeek = `${monthName}-Week ${weekNumber}`;
+        gridApi.setEditCellValue({
+          id,
+          field: "Allocation Week",
+          value: allocationWeek,
+        });
+      }
+    } else if (field === "Allocation Date") {
+      // Only clear AllocationWeek if JoiningAllocationDate is cleared
+      gridApi.setEditCellValue({
+        id,
+        field: "Allocation Week",
+        value: "",
+      });
+    }
+
+    // Update the actual date field
+    gridApi.setEditCellValue({
+      id,
+      field,
+      value: newDate ? newDate.toISOString().split("T")[0] : null,
+    });
+  };
+
+  return (
+    <TextField
+      type="date"
+      value={date ? date.toISOString().split("T")[0] : ""}
+      onChange={(e) => {
+        const newDate = e.target.value ? new Date(e.target.value) : null;
+        handleChange(newDate);
+      }}
+      sx={{ width: "100%" }}
+    />
+  );
+});
+
+const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [inputValue, setInputValue] = useState(value || "");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+  };
+
+  const handleBlur = async () => {
+    if (inputValue && inputValue !== value) {
+      setIsLoading(true);
+      try {
+        // Update the ID field
+        gridApi.setEditCellValue({
+          id,
+          field,
+          value: inputValue,
+        });
+
+        // Fetch employee name and grade
+        const response = await api.get("/employees/getEmployeeById", {
+          params: { employeeId: inputValue },
+        });
+        
+        if (response.data && response.data.employee_name) {
+          // Update the name field
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified Assoc Name",
+            value: response.data.employee_name,
+          });
+          // Update the grade field
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: response.data.grade,
+          });
+        } else {
+          // Clear employee name and grade if no match found
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified Assoc Name",
+            value: "",
+          });
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching employee name:", error);
+        // Clear employee name and grade in case of error
+        gridApi.setEditCellValue({
+          id,
+          field: "Identified Assoc Name",
+          value: "",
+        });
+        gridApi.setEditCellValue({
+          id,
+          field: "Grades",
+          value: "",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  return (
+    <TextField
+      value={inputValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder="Enter Employee ID"
+      sx={{ width: "100%" }}
+      disabled={isLoading}
+      InputProps={{
+        endAdornment: isLoading ? <CircularProgress size={20} /> : null,
+      }}
+    />
+  );
+});
 
 function DemandSupplyMatching() {
   const [data, setData] = useState([]);
@@ -54,133 +257,546 @@ function DemandSupplyMatching() {
   const gridRef = useRef(null);
   const [rowModesModel, setRowModesModel] = React.useState({});
 
+  const [parentCustomer, setParentCustomer] = useState("All");
+  const [buDesc, setBuDesc] = useState("All");
+  const [pdlName, setPdlName] = useState("All");
+  const [offOn, setOffOn] = useState("All");
+
+  const [parentCustomerOptions, setParentCustomerOptions] = useState([]);
+  const [buDescOptions, setBuDescOptions] = useState([]);
+  const [pdlNameOptions, setPdlNameOptions] = useState([]);
+  const [offOnOptions, setOffOnOptions] = useState([]);
+
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [selectedUnique, setSelectedUnique] = useState(null);
+  const [auditData, setAuditData] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const [dropdownOptions, setDropdownOptions] = useState({});
+  
+  const editableColumns = [
+    "Demand Type",
+    "Demand Status",
+    "Fulfilment Plan",
+    "Demand Category",
+    "Supply Source",
+    "Rotation So",
+    "Supply Account",
+    "Identified Asso Id Ext Candidate Id",
+    "Identified Assoc Name",
+    "Grades",
+    "Eff Month",
+    "Allocation Date",
+    "Allocation Week",
+    "Included In Forecast",
+    "Cross Skill Required",
+    "Remarks Details",
+  ];
+
+
+  const fieldToDropdownTypeMap = {
+    "Demand Category": "DEMAND_CATEGORY",
+    "Fulfilment Plan": "FULFILMENT_PLAN",
+    "Supply Source": "SUPPLY_SOURCE",
+    "Demand Type": "DEMAND_TYPE",
+    "Demand Status": "DEMAND_STATUS",
+    Grades: "GRADE",
+    "Included In Forecast": "YES_NO",
+    "Cross Skill Required": "YES_NO",
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAllDropdownOptions = async () => {
+      const options = {};
+      for (const field in fieldToDropdownTypeMap) {
+        const dropdownType = fieldToDropdownTypeMap[field];
+        try {
+          const response = await api.get(`/demand/dropdown`, {
+            params: { fieldName: dropdownType },
+          });
+          options[field] = response.data.map((item) => ({
+            value: item.key_value,
+            label: item.description,
+          }));
+        } catch (error) {
+          console.error(`Error fetching dropdown options for ${field}:`, error);
+          options[field] = []; // Ensure there's always a value
+        }
+      }
+      if (isMounted) {
+        setDropdownOptions(options);
+      }
+    };
+
+    const fetchDropdownData = async () => {
+      try {
+        const [
+          parentCustomerResponse,
+          buDescResponse,
+          pdlNameResponse,
+          offOnResponse,
+        ] = await Promise.all([
+          api.get("/demandselect/parentCustomers"),
+          api.get("/demandselect/businessUnitDescs"),
+          api.get("/demandselect/pdlNames"),
+          api.get("/demandselect/offOns"),
+        ]);
+
+        if (isMounted) {
+          setParentCustomerOptions(["All", ...parentCustomerResponse.data]);
+          setBuDescOptions(["All", ...buDescResponse.data]);
+          setPdlNameOptions(["All", ...pdlNameResponse.data]);
+          setOffOnOptions(["All", ...offOnResponse.data]);
+        }
+      } catch (error) {
+        console.error("Error fetching dropdown data:", error);
+      }
+    };
+
+    fetchAllDropdownOptions();
+    fetchDropdownData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/demandselect");
-        setData(response.data);
+        const response = await api.get("/demandselect");
+        let fetchedData = response.data;
+
+        fetchedData = fetchedData.map((item) => {
+          if (item.JoiningAllocationDate) {
+            const joiningDate = new Date(item.JoiningAllocationDate);
+            const weekNumber = getWeekOfMonth(joiningDate);
+            const monthName = joiningDate.toLocaleString("default", {
+              month: "short",
+            });
+            item.AllocationWeek = `${monthName}-Week ${weekNumber}`;
+            item.JoiningAllocationDate =
+              item.JoiningAllocationDate.split("T")[0];
+          }
+          return item;
+        });
+        setData(fetchedData);
 
         if (response.data.length > 0) {
           let cols = Object.keys(response.data[0]).map((key) => ({
             field: key,
-            headerName: key.replace(/_/g, " ").toUpperCase(),
+            headerName: key,
             width: 150,
-            editable: true, // Make columns editable
           }));
-
-          // Add actions column
-          cols = [
-            ...cols,
-            {
-              field: "actions",
-              type: "actions",
-              headerName: "Actions",
-              width: 100,
-              cellClassName: "actions",
-              getActions: ({ id }) => {
-                const isInEditMode = rowModesModel[id]?.mode === "edit";
-
-                if (isInEditMode) {
-                  return [
-                    <GridActionsCellItem
-                      icon={<SaveIcon />}
-                      label="Save"
-                      onClick={handleSaveClick(id)}
-                      color="primary"
-                    />,
-                    <GridActionsCellItem
-                      icon={<CancelIcon />}
-                      label="Cancel"
-                      className="textPrimary"
-                      onClick={handleCancelClick(id)}
-                      color="inherit"
-                    />,
-                  ];
-                }
-
-                return [
-                  <GridActionsCellItem
-                    icon={<EditIcon />}
-                    label="Edit"
-                    className="textPrimary"
-                    onClick={handleEditClick(id)}
-                    color="inherit"
-                  />,
-                  <GridActionsCellItem
-                    icon={<DeleteIcon />}
-                    label="Delete"
-                    onClick={handleDeleteClick(id)}
-                    color="inherit"
-                  />,
-                ];
-              },
-            },
-          ];
           setColumns(cols);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
-  }, [rowModesModel]);
+  }, []);
 
   const handleEditClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: "edit" } });
+    
+    setRowModesModel((prevModel) => ({
+      ...prevModel,
+      [id]: { mode: "edit" },
+    }));
   };
 
-  const handleSaveClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: "view" } });
-    // Here you would typically make an API call to save the changes to the server
-    console.log(`Saving row with id ${id}`);
-  };
+  const handleSaveClick = useCallback(
+    (id) => async () => {
+      const updatedRow = data.find((row) => row.item_id === id);
+      const payload = {
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["So Line Status"],
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
+      };
+      try {
+        await api.post("/demand/update", payload);
+        // Integrate audit procedure call
+        const auditPayload = {
+          soid: updatedRow["So Id"],
+          status: updatedRow["So Line Status"],
+          roles: null,
+          modifieddate: new Date().toISOString(),
+          modifiedby: pdlName,
+          notes:
+            updatedRow.RemarksDetails ||
+            updatedRow.remarks ||
+            updatedRow.remarks_details ||
+            "",
+        };
+        await api.post("/demand/audit_insert", auditPayload);
+        setRowModesModel((prevModel) => ({
+          ...prevModel,
+          [id]: { mode: "view" },
+        }));
+        console.log(`Row with id ${id} saved successfully.`);
+      } catch (error) {
+        console.error("Error saving row:", error);
+      }
+    },
+    [data, editableColumns, pdlName, setRowModesModel]
+  );
 
-  const handleDeleteClick = (id) => () => {
-    const updatedData = data.filter((row) => row.ID !== id);
-    setData(updatedData);
-  };
-
-  const handleCancelClick = (id) => () => {
-    setRowModesModel({
-      ...rowModesModel,
-      [id]: { mode: "view", ignoreModifications: true },
-    });
-    const editedRow = data.find((row) => row.ID === id);
-    if (editedRow.isNew) {
-      setData(data.filter((row) => row.ID !== id));
+  const handleAuditClick = (id) => async () => {
+    const row = data.find((r) => r.item_id === id);
+    if (!row) return;
+    const uniqueId = row["So Id"];
+    setSelectedUnique(uniqueId);
+    setAuditOpen(true);
+    setAuditLoading(true);
+    try {
+      const response = await api.get("/demand/audit_history", {
+        params: { unique_id: uniqueId },
+      });
+      setAuditData(response.data);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+    } finally {
+      setAuditLoading(false);
     }
   };
 
+  const handleAuditClose = () => {
+    setAuditOpen(false);
+    setAuditData([]);
+    setSelectedUnique(null);
+  };
+
+  const handleCancelClick = useCallback(
+    (id) => () => {
+      setRowModesModel((prevModel) => ({
+        ...prevModel,
+        [id]: { mode: "view", ignoreModifications: true },
+      }));
+
+      const editedRow = data.find((row) => row.item_id === id);
+      if (editedRow?.isNew) {
+        setData(data.filter((row) => row.item_id !== id));
+      }
+    },
+    [data, setRowModesModel]
+  );
+
   const filteredRows = useMemo(() => {
-    if (!searchText) return data;
-    const lowerSearchText = searchText.toLowerCase();
-    return data.filter((row) =>
-      columns.slice(0, -1).some(
-        (
-          column // Exclude the 'actions' column
-        ) => String(row[column.field]).toLowerCase().includes(lowerSearchText)
-      )
-    );
+    let filteredData = data;
+
+    if (searchText) {
+      const lowerSearchText = searchText.toLowerCase();
+      filteredData = filteredData.filter((row) =>
+        columns
+          .slice(0, -1)
+          .some((column) =>
+            String(row[column.field]).toLowerCase().includes(lowerSearchText)
+          )
+      );
+    }
+    return filteredData;
   }, [data, columns, searchText]);
 
-  const processRowUpdate = (newRow) => {
+  const processRowUpdate = async (newRow) => {
     const updatedRow = { ...newRow, isNew: false };
-    setData(data.map((row) => (row.ID === newRow.ID ? updatedRow : row)));
+    try {
+      const payload = {
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["So Line Status"],
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
+      };
+      await api.post("/demand/update", payload);
+      console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
+
+      setData((prevData) =>
+        prevData.map((row) => {
+          if (row.item_id === updatedRow.item_id) {
+            // Find the old row to compare JoiningAllocationDate
+            const oldRow = prevData.find(
+              (r) => r.item_id === updatedRow.item_id
+            );
+            // Update AllocationWeek only if JoiningAllocationDate has changed
+            if (
+              updatedRow.JoiningAllocationDate &&
+              oldRow.JoiningAllocationDate !== updatedRow.JoiningAllocationDate
+            ) {
+              const joiningDate = new Date(updatedRow.JoiningAllocationDate);
+              const weekNumber = getWeekOfMonth(joiningDate);
+              const monthName = joiningDate.toLocaleString("default", {
+                month: "short",
+              });
+              updatedRow.AllocationWeek = `${monthName}-Week ${weekNumber}`;
+              updatedRow.JoiningAllocationDate = joiningDate
+                .toISOString()
+                .split("T")[0];
+            }
+            if (updatedRow.EffMonth) {
+              const effMonthDate = new Date(updatedRow.EffMonth);
+              updatedRow.EffMonth = effMonthDate.toISOString().split("T")[0];
+            }
+            return updatedRow;
+          }
+          return row;
+        })
+      );
+    } catch (error) {
+      console.error("Error saving row:", error);
+      throw error;
+    }
     return updatedRow;
   };
 
+  const handleRowEditStart = (params, event) => {
+    event.defaultMuiPrevented = true;
+  };
+
   const handleRowEditStop = (params, event) => {
-    if (params.reason === "rowFocusOut") {
-      event.defaultMuiPrevented = true;
+    event.defaultMuiPrevented = true;
+  };
+
+  const getRowClassName = (params) => {
+    return rowModesModel[params.id]?.mode === "edit" ? "row-editing" : "";
+  };
+
+  const handleParentCustomerChange = (event) => {
+    setParentCustomer(event.target.value);
+  };
+
+  const handleBuDescChange = (event) => {
+    setBuDesc(event.target.value);
+  };
+
+  const handlePdlNameChange = (event) => {
+    setPdlName(event.target.value);
+  };
+
+  const handleOffOnChange = (event) => {
+    setOffOn(event.target.value);
+  };
+
+  const handleViewReport = async () => {
+    try {
+      const params = {
+        parentCustomer: parentCustomer === "All" ? "null" : parentCustomer,
+        buDesc: buDesc === "All" ? "null" : buDesc,
+        pdlName: pdlName === "All" ? "null" : pdlName,
+        offOn: offOn === "All" ? "null" : offOn,
+      };
+
+      const response = await api.get("/demandselect/report", { params });
+      setData(response.data);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
     }
   };
+
+  const columnsWithActions = useMemo(
+    () => [
+      {
+        field: "actions",
+        type: "actions",
+        headerName: "Actions",
+        width: 120,
+        cellClassName: "actions",
+        getActions: ({ id }) => {
+          const isInEditMode = rowModesModel[id]?.mode === "edit";
+
+          if (isInEditMode) {
+            return [
+              <GridActionsCellItem
+                icon={<SaveIcon />}
+                label="Save"
+                onClick={handleSaveClick(id)}
+                color="primary"
+              />,
+              <GridActionsCellItem
+                icon={<CancelIcon />}
+                label="Cancel"
+                onClick={handleCancelClick(id)}
+                color="inherit"
+              />,
+            ];
+          }
+
+          return [
+            <GridActionsCellItem
+              icon={<EditIcon />}
+              label="Edit"
+              onClick={handleEditClick(id)}
+              color="inherit"
+            />,
+            <GridActionsCellItem
+              icon={<HistoryIcon />}
+              label="Audit History"
+              onClick={handleAuditClick(id)}
+              color="inherit"
+            />,
+          ];
+        },
+      },
+      ...columns.map((col) => ({
+        ...col,
+        editable: editableColumns.includes(col.field),
+        cellClassName: editableColumns.includes(col.field)
+          ? "editable-cell"
+          : null,
+        renderEditCell:
+          col.field === "Identified Asso Id Ext Candidate Id"
+            ? (params) => (
+                <EmployeeIdEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                />
+              )
+            : fieldToDropdownTypeMap[col.field]
+            ? (params) => (
+                <DropdownEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                  options={dropdownOptions[col.field] || []}
+                />
+              )
+            : col.field === "Allocation Date" || col.field === "Eff Month"
+            ? (params) => (
+                <DateFieldEditCell
+                  field={params.field}
+                  value={params.value}
+                  id={params.id}
+                  api={params.api}
+                />
+              )
+            : undefined,
+      })),
+    ],
+    [
+      columns,
+      rowModesModel,
+      data,
+      editableColumns,
+      handleSaveClick,
+      handleCancelClick,
+      dropdownOptions,
+    ]
+  );
 
   return (
     <Box sx={{ width: "100%" }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
-        Demand Supply Matching
+        Demand Supply Mapping
       </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 3,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <FormControl size="small" sx={{ minWidth: 300 }}>
+          <Autocomplete
+            options={parentCustomerOptions}
+            value={parentCustomer}
+            onChange={(event, newValue) => setParentCustomer(newValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Parent Customer"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase())
+              )
+            }
+            isOptionEqualToValue={(option, value) => option === value}
+          />
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 300 }}>
+          <Autocomplete
+            options={buDescOptions}
+            value={buDesc}
+            onChange={(event, newValue) => setBuDesc(newValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Business Unit"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase())
+              )
+            }
+            isOptionEqualToValue={(option, value) => option === value}
+          />
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel id="pdl-name-label">PDL Name</InputLabel>
+          <Select
+            labelId="pdl-name-label"
+            id="pdl-name"
+            value={pdlName}
+            label="PDL Name"
+            onChange={handlePdlNameChange}
+          >
+            <MenuItem value="All">All</MenuItem>
+            {pdlNameOptions
+              .filter((option) => option !== "All")
+              .map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel id="off-on-label">Off/On</InputLabel>
+          <Select
+            labelId="off-on-label"
+            id="off-on"
+            value={offOn}
+            label="Off/On"
+            onChange={handleOffOnChange}
+          >
+            <MenuItem value="All">All</MenuItem>
+            {offOnOptions
+              .filter((option) => option !== "All")
+              .map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleViewReport}
+        sx={{ mb: 2 }}
+      >
+        View Report
+      </Button>
+
       <InputBase
         type="text"
         placeholder="Global Search..."
@@ -202,30 +818,86 @@ function DemandSupplyMatching() {
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableVirtualization
+          columns={columnsWithActions.map((col) => ({
+            ...col,
+            editable: editableColumns.includes(col.field),
+          }))}
           components={{
             Toolbar: () => (
               <GridToolbarContainer
                 sx={{
-                  padding: 1,
                   backgroundColor: "#FFFFFF",
+                  padding: 1,
                   borderBottom: `1px solid #D3D3D3`,
                 }}
-              >
-                {/* Existing toolbar content if any */}
-              </GridToolbarContainer>
+              ></GridToolbarContainer>
             ),
           }}
-          getRowId={(row) => row.ID}
+          disableVirtualization
+          rowsPerPageOptions={[10, 25, 50]}
+          pageSize={10}
+          getRowId={(row) => row.item_id}
           editMode="row"
           rowModesModel={rowModesModel}
+          onRowEditStart={handleRowEditStart}
           onRowEditStop={handleRowEditStop}
           processRowUpdate={processRowUpdate}
+          getRowClassName={getRowClassName}
+          sx={{
+            "& .row-editing": {
+              backgroundColor: "#FFF3E0",
+            },
+          }}
         />
       </div>
+
+      {/* Audit History Dialog */}
+      <Dialog
+        open={auditOpen}
+        onClose={handleAuditClose}
+        fullWidth
+        maxWidth="lg" // increased popup width
+      >
+        <DialogTitle>Audit History</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1">SO ID: {selectedUnique}</Typography>
+          {auditLoading ? (
+            <Typography>Loading...</Typography>
+          ) : (
+            <div style={{ height: 400, width: "100%", marginTop: 16 }}>
+              <StyledDataGrid // changed from DataGrid to StyledDataGrid
+                rows={auditData}
+                columns={[
+                  { field: "auditid", headerName: "Audit ID", width: 100 },
+                  { field: "so_id", headerName: "SO ID", width: 150 },
+                  { field: "status", headerName: "Status", width: 120 },
+                  { field: "roles", headerName: "Roles", width: 150 },
+                  {
+                    field: "modified_date",
+                    headerName: "Modified Date",
+                    width: 180,
+                  },
+                  {
+                    field: "modified_by",
+                    headerName: "Modified By",
+                    width: 150,
+                  },
+                  { field: "comments", headerName: "Comments", width: 200 },
+                ]}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10]}
+                disableSelectionOnClick
+                getRowId={(row) => row.auditid}
+              />
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAuditClose} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
