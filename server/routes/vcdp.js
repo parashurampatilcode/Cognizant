@@ -34,12 +34,22 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     // Process each row and insert into database
     for (const row of jsonData) {
       try {
+        console.log("Processing row from routers vcdp:", row); // Debug
         await VCDP.create(row);
       } catch (error) {
         console.error(`Error processing row:`, row);
         console.error('Error details:', error);
         // Continue processing other rows
       }
+    }
+
+    //Call the function to load data from stage to main table
+    try {
+      await pool.query("select * from  public.transform_vcdp_stage_to_main()");
+      console.log("Stored procedure called successfully.");
+    } catch (error) {
+      console.error("Error calling stored procedure:", error);
+      return res.status(500).json({ error: "Error calling stored procedure" });
     }
 
     res.json({ message: "File processed successfully" });

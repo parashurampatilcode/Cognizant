@@ -4,7 +4,7 @@ const pool = require("../config/db");
 const LateralHiring = {
   getAll: async () => {
     try {
-      const query = 'SELECT * FROM "lateral_hiring"';
+      const query = 'SELECT * FROM lateral_hiring_stage';
       const { rows } = await pool.query(query);
       return rows;
     } catch (error) {
@@ -100,7 +100,7 @@ const LateralHiring = {
       });
 
       const query = `
-        INSERT INTO "lateral_hiring" (${columnNames
+        INSERT INTO "lateral_hiring_stage" (${columnNames
           .map((col) => `"${col}"`)
           .join(", ")})
         VALUES ${placeholders.join(", ")}

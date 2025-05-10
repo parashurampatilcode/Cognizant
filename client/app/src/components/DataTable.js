@@ -31,7 +31,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 }));
 
-function DataTable({ rows, columns }) {
+function DataTable({ rows, columns,getRowId }) {
+  console.log("DataTable getRowId:", getRowId); 
   const [searchText, setSearchText] = useState("");
   const gridRef = useRef(null);
 
@@ -51,6 +52,7 @@ function DataTable({ rows, columns }) {
       <StyledDataGrid
         ref={gridRef}
         rows={filteredRows}
+        getRowId={getRowId}
         columns={columns}
         pageSize={10}
         rowsPerPageOptions={[10, 25, 50]}
