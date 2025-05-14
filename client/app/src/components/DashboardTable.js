@@ -100,7 +100,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
       const cols = Object.keys(reportData[0]).map((key, index) => ({
         field: key,
         headerName:
-          key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
+          key.replace(/_/g, " ").toUpperCase(),
         minWidth: 150,
         flex: 1,
         renderCell: (params) =>
@@ -162,10 +162,10 @@ const DashboardTable = ({ reportData, filterValues }) => {
     const isFirstColumn = index === 0;
     const isLastColumn = index === Object.keys(reportData[0]).length - 1;
     const isMiddleColumn = [
-      "Pdp",
+      "PDP",
       "PDP (PA-)",
       "PDP (A+)",
-      "Vcdp",
+      "VCDP",
       "VCDP (PA-)",
       "VCDP (A)",
     ].includes(params.colDef.headerName);
@@ -314,7 +314,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
       <Dialog
         open={openPopup}
         onClose={() => setOpenPopup(false)}
-        maxWidth="lg"
+        maxWidth={false}
         fullWidth
       >
         <DialogTitle
