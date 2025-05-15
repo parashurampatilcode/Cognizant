@@ -231,6 +231,27 @@ router.get("/dropdown", async (req, res) => {
   }
 });
 
+router.get("/dropdownBySubType", async (req, res) => {
+  const { fieldName } = req.query;
+  const { subType } = req.query;
+
+  if (!fieldName && !subType ) {
+    console.error("Field name or subtype is missing in the request."); // Debug log
+    return res.status(400).json({ error: "Field name and Sub Type are required" });
+  }
+
+  try {
+    console.log(`Fetching dropdown values for field: ${fieldName}`); // Debug log
+    console.log(`Fetching dropdown values for subtype: ${subType}`); // Debug log
+    const dropdownValues = await Demand.getDropdownValuesByTypeAndSubType(fieldName,subType);
+    //console.log(`Dropdown values for ${fieldName}:`, dropdownValues); // Debug log
+    res.json(dropdownValues);
+  } catch (error) {
+    console.error("Error fetching dropdown values by subtype:", error);
+    res.status(500).json({ error: "Failed to fetch dropdown values by sub type" });
+  }
+});
+
 router.get("/audit_history", async (req, res) => {
   const { unique_id } = req.query;
   if (!unique_id) {

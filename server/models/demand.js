@@ -357,7 +357,21 @@ const Demand = {
       throw error;
     }
   },
+  
+  async getDropdownValuesByTypeAndSubType(type,subType) {
+    try {
+      const query = `SELECT * FROM get_demand_dropdown_by_type_and_sub_type($1,$2)`;
+      const { rows } = await pool.query(query, [type, subType]);
+      return rows;
+    } catch (error) {
+      console.error(`Error fetching dropdown values for type and subtype ${type} and ${subType}:`, error);
+      throw error;
+    }
+  },
+  
 };
+
+
 
 const express = require("express");
 const app = express();
