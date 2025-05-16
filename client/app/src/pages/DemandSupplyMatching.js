@@ -567,6 +567,7 @@ function DemandSupplyMatching() {
             width: 150,
           }));
           
+        
           // Move "Project Billability Type" before the first editable column
         const pbIndex = cols.findIndex(col => col.field === "Project Billability Type");
         const firstEditableIndex = cols.findIndex(col => editableColumns.includes(col.field));
@@ -574,6 +575,8 @@ function DemandSupplyMatching() {
           const [pbCol] = cols.splice(pbIndex, 1);
           cols.splice(firstEditableIndex, 0, pbCol);
         }
+
+     
 
         // Move specified columns after editable columns
         const moveAfterEditable = [
@@ -600,6 +603,15 @@ function DemandSupplyMatching() {
         });
         // Insert them after the last editable column
         cols.splice(lastEditableIndex + 1, 0, ...toMove);
+
+        
+        // Move Eff Month after Allocation Week
+        const effMonthIdx = cols.findIndex(col => col.field === "Eff Month");
+        const allocationWeekIdx = cols.findIndex(col => col.field === "Allocation Week");
+        if (effMonthIdx > -1 && allocationWeekIdx > -1 && effMonthIdx !== allocationWeekIdx + 1) {
+          const [effMonthCol] = cols.splice(effMonthIdx, 1);
+          cols.splice(allocationWeekIdx + 1, 0, effMonthCol);
+        }  
           setColumns(cols);
         }
       } catch (error) {
@@ -717,7 +729,9 @@ function DemandSupplyMatching() {
     try {
       const payload = {
         SoId: updatedRow["So Id"],
-        SOLineStatus: updatedRow["So Line Status"],
+        SOLineStatus: updatedRow["So Line Status"
+
+        ],
         ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
