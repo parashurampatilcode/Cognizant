@@ -236,7 +236,13 @@ const DropdownEditCell = React.memo(
           }
         }
         // Default for other fields
-        else if (field !== "Demand Status" && field !== "Supply Source" && field !== "Demand Category" &&  field !== "Included In Forecast") {
+        else if (
+          field !== "Demand Status" &&
+          field !== "Supply Source" &&
+          field !== "Demand Category" &&
+          field !== "Included In Forecast" &&
+          field !== "Fulfilment Plan"
+        ) {
           setLocalOptions(options);
         }
       };
