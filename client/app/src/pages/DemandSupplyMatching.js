@@ -85,22 +85,199 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
 }));
 
 const DropdownEditCell = React.memo(
-  ({ field, value, id, api: gridApi, options }) => {
-    // Ensure the value matches one of the available options
-    const selectedValue = options.some((option) => option.value === value)
-      ? value
-      : "";
+  ({ field, value, id, api: gridApi, options, row }) => {
+    const [localOptions, setLocalOptions] = useState(options);
+    const [selectedValue, setSelectedValue] = useState(value);
+
+    useEffect(() => {
+      const fetchDependentDropdown = async () => {
+        
+         // Fulfilment Plan depends on Demand Type
+    if (field === "Fulfilment Plan" && row["Demand Type"]) {
+      try {
+        const response = await api.get("/demand/dropdownBySubType", {
+          params: { fieldName: "FULFILMENT_PLAN", subType: row["Demand Type"] },
+        });
+        if (Array.isArray(response.data)) {
+          const opts = response.data.map(item => ({
+            value: item.key_value,
+            label: item.description,
+          }));
+          setLocalOptions(opts);
+          // Always set the first value if the current value is not in the new options
+          if (opts.length > 0 && (!value || !opts.some(opt => opt.value === value))) {
+            setSelectedValue(opts[0].value);
+            gridApi.setEditCellValue({ id, field: "Fulfilment Plan", value: opts[0].value });
+          }
+        } else {
+          setLocalOptions([]);
+        }
+      } catch {
+        setLocalOptions([]);
+      }
+    }
+        
+        if (field === "Demand Category" && row["Demand Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_CATEGORY", subType: row["Demand Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Category", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+       
+        // Included In Forecast depends on Demand Type
+        if (field === "Included In Forecast" && row["Demand Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "INCLUDED_IN_FORECAST", subType: row["Demand Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Included In Forecast", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Demand Category depends on Project Billability Type
+        if (field === "Demand Category" && row["Project Billability Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_CATEGORY", subType: row["Project Billability Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Category", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Demand Status depends on Demand Type
+        else if (field === "Demand Status" && row["Demand Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_STATUS", subType: row["Demand Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Status", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Supply Source depends on Fulfilment Plan
+        else if (field === "Supply Source" && row["Fulfilment Plan"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "SUPPLY_SOURCE", subType: row["Fulfilment Plan"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Supply Source", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Default for other fields
+        else if (
+          field !== "Demand Status" &&
+          field !== "Supply Source" &&
+          field !== "Demand Category" &&
+          field !== "Included In Forecast" &&
+          field !== "Fulfilment Plan"
+        ) {
+          setLocalOptions(options);
+        }
+      };
+      fetchDependentDropdown();
+      // eslint-disable-next-line
+    }, [field,row["Project Billability Type"], row["Demand Type"], row["Fulfilment Plan"], options]);
+
+    const handleChange = async (event) => {
+      const newValue = event.target.value;
+      setSelectedValue(newValue);
+    
+      if (field === "Demand Type") {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+        gridApi.setEditCellValue({ id, field: "Demand Status", value: "" });
+        gridApi.setEditCellValue({ id, field: "Included In Forecast", value: "" });
+        gridApi.setEditCellValue({ id, field: "Demand Category", value: "" });
+        gridApi.setEditCellValue({ id, field: "Fulfilment Plan", value: "" }); // This triggers Fulfilment Plan cell to re-render
+      } else if (field === "Fulfilment Plan") {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+        gridApi.setEditCellValue({ id, field: "Supply Source", value: "" });
+      } else if (field === "Project Billability Type") {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+        gridApi.setEditCellValue({ id, field: "Demand Category", value: "" });
+      } else {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+      }
+    };
 
     return (
       <Select
-        value={selectedValue}
-        onChange={(event) => {
-          const newValue = event.target.value;
-          gridApi.setEditCellValue({ id, field, value: newValue });
-        }}
+        value={selectedValue || ""}
+        onChange={handleChange}
         sx={{ width: "100%" }}
       >
-        {options.map((option) => (
+        {localOptions.map(option => (
           <MenuItem key={option.value} value={option.value}>
             {option.label}
           </MenuItem>
@@ -109,6 +286,7 @@ const DropdownEditCell = React.memo(
     );
   }
 );
+
 
 function getWeekOfMonth(date) {
   const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -388,6 +566,52 @@ function DemandSupplyMatching() {
             headerName: key,
             width: 150,
           }));
+          
+        
+          // Move "Project Billability Type" before the first editable column
+        const pbIndex = cols.findIndex(col => col.field === "Project Billability Type");
+        const firstEditableIndex = cols.findIndex(col => editableColumns.includes(col.field));
+        if (pbIndex > -1 && firstEditableIndex > -1 && pbIndex !== firstEditableIndex - 1) {
+          const [pbCol] = cols.splice(pbIndex, 1);
+          cols.splice(firstEditableIndex, 0, pbCol);
+        }
+
+     
+
+        // Move specified columns after editable columns
+        const moveAfterEditable = [
+          "Job Code",
+          "Flagged For Recruitment",
+          "When Flagged For Recruitment",
+          "Hiring Manager",
+          "Candidate Name",
+          "Date Of Joining",
+          "Tmp Remarks"
+        ];
+        // Find the last editable column index
+        const lastEditableIndex = Math.max(
+          ...editableColumns.map(colName => cols.findIndex(col => col.field === colName))
+        );
+        // Remove and collect the columns to move
+        const toMove = [];
+        moveAfterEditable.forEach(colName => {
+          const idx = cols.findIndex(col => col.field === colName);
+          if (idx > -1) {
+            toMove.push(cols[idx]);
+            cols.splice(idx, 1);
+          }
+        });
+        // Insert them after the last editable column
+        cols.splice(lastEditableIndex + 1, 0, ...toMove);
+
+        
+        // Move Eff Month after Allocation Week
+        const effMonthIdx = cols.findIndex(col => col.field === "Eff Month");
+        const allocationWeekIdx = cols.findIndex(col => col.field === "Allocation Week");
+        if (effMonthIdx > -1 && allocationWeekIdx > -1 && effMonthIdx !== allocationWeekIdx + 1) {
+          const [effMonthCol] = cols.splice(effMonthIdx, 1);
+          cols.splice(allocationWeekIdx + 1, 0, effMonthCol);
+        }  
           setColumns(cols);
         }
       } catch (error) {
@@ -505,7 +729,9 @@ function DemandSupplyMatching() {
     try {
       const payload = {
         SoId: updatedRow["So Id"],
-        SOLineStatus: updatedRow["So Line Status"],
+        SOLineStatus: updatedRow["So Line Status"
+
+        ],
         ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
@@ -664,6 +890,7 @@ function DemandSupplyMatching() {
                   id={params.id}
                   api={params.api}
                   options={dropdownOptions[col.field] || []}
+                  row={params.row} // <-- pass the row!
                 />
               )
             : col.field === "Allocation Date" || col.field === "Eff Month"

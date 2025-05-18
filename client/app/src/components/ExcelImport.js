@@ -111,7 +111,7 @@ function ExcelImport() {
       setError("This file type is not yet supported.");
     }
   };
-  const getRowId = (row) => row.import_id; // Use import_id as the ID
+  const getRowId = (row) => row.import_id || row.pdp_main_id || row.vcdp_main_id; // Use import_id as the ID
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h5" sx={{ marginBottom: 3 }}>
@@ -151,10 +151,10 @@ function ExcelImport() {
       )}
 
       <UploadComponent onUpload={handleUpload} disabled={loading} />
-
+      
       {uploadedData && uploadedData.rows.length > 0 && (
         <Box sx={{ height: 400, width: "100%" }}>
-          <DataTable rows={uploadedData.rows} columns={uploadedData.columns} getRowId={(row) => row.import_id} />
+          <DataTable rows={uploadedData.rows} columns={uploadedData.columns} getRowId={getRowId} />
         </Box>
       )}
       {uploadedData && uploadedData.rows.length === 0 && (
