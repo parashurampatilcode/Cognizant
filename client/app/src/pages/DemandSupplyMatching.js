@@ -312,12 +312,26 @@ const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
           field: "Allocation Week",
           value: allocationWeek,
         });
+
+        // Set Eff Month (format: YYYY-MM)
+        const monthNameEff = newDate.toLocaleString("default", { month: "short" });
+        const effMonth = `${monthNameEff}-${newDate.getFullYear()}`;
+        gridApi.setEditCellValue({
+          id,
+          field: "Eff Month",
+          value: effMonth,
+        });
       }
     } else if (field === "Allocation Date") {
       // Only clear AllocationWeek if JoiningAllocationDate is cleared
       gridApi.setEditCellValue({
         id,
         field: "Allocation Week",
+        value: "",
+      });
+      gridApi.setEditCellValue({
+        id,
+        field: "Eff Month",
         value: "",
       });
     }
@@ -762,10 +776,7 @@ function DemandSupplyMatching() {
                 .toISOString()
                 .split("T")[0];
             }
-            if (updatedRow.EffMonth) {
-              const effMonthDate = new Date(updatedRow.EffMonth);
-              updatedRow.EffMonth = effMonthDate.toISOString().split("T")[0];
-            }
+            
             return updatedRow;
           }
           return row;
@@ -866,44 +877,59 @@ function DemandSupplyMatching() {
           ];
         },
       },
-      ...columns.map((col) => ({
-        ...col,
-        editable: editableColumns.includes(col.field),
+     ...columns.map((col) => ({
+  ...col,
+  editable: editableColumns.includes(col.field),
         cellClassName: editableColumns.includes(col.field)
           ? "editable-cell"
           : null,
-        renderEditCell:
-          col.field === "Identified Asso Id Ext Candidate Id"
-            ? (params) => (
-                <EmployeeIdEditCell
-                  field={params.field}
-                  value={params.value}
-                  id={params.id}
-                  api={params.api}
-                />
-              )
-            : fieldToDropdownTypeMap[col.field]
-            ? (params) => (
-                <DropdownEditCell
-                  field={params.field}
-                  value={params.value}
-                  id={params.id}
-                  api={params.api}
-                  options={dropdownOptions[col.field] || []}
-                  row={params.row} // <-- pass the row!
-                />
-              )
-            : col.field === "Allocation Date" || col.field === "Eff Month"
-            ? (params) => (
-                <DateFieldEditCell
-                  field={params.field}
-                  value={params.value}
-                  id={params.id}
-                  api={params.api}
-                />
-              )
-            : undefined,
-      })),
+  
+  renderEditCell:
+    col.field === "Identified Asso Id Ext Candidate Id"
+      ? (params) => (
+          <EmployeeIdEditCell
+            field={params.field}
+            value={params.value}
+            id={params.id}
+            api={params.api}
+          />
+        )
+      : fieldToDropdownTypeMap[col.field]
+      ? (params) => (
+          <DropdownEditCell
+            field={params.field}
+            value={params.value}
+            id={params.id}
+            api={params.api}
+            options={dropdownOptions[col.field] || []}
+            row={params.row}
+          />
+        )
+      : col.field === "Allocation Date"
+      ? (params) => (
+          <DateFieldEditCell
+            field={params.field}
+            value={params.value}
+            id={params.id}
+            api={params.api}
+          />
+        )
+      // : col.field === "Eff Month"
+      // ? (params) => (
+      //     <span>
+      //       {params.value
+      //         ? (() => {
+      //             const [year, month] = params.value.split("-");
+      //             if (!year || !month) return "";
+      //             const date = new Date(year, parseInt(month, 10) - 1);
+      //             if (isNaN(date.getTime())) return params.value;
+      //             return `${date.toLocaleString("default", { month: "short" })}-${year}`;
+      //           })()
+      //         : ""}
+      //     </span>
+      //   )
+      : undefined,
+})),
     ],
     [
       columns,
@@ -1045,10 +1071,11 @@ function DemandSupplyMatching() {
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
-          columns={columnsWithActions.map((col) => ({
-            ...col,
-            editable: editableColumns.includes(col.field),
-          }))}
+          columns={columnsWithActions}
+          // columns={columnsWithActions.map((col) => ({
+          //   ...col,
+          //   editable: editableColumns.includes(col.field),
+          // }))}
           components={{
             Toolbar: () => (
               <GridToolbarContainer
