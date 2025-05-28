@@ -914,20 +914,6 @@ function DemandSupplyMatching() {
             api={params.api}
           />
         )
-      // : col.field === "Eff Month"
-      // ? (params) => (
-      //     <span>
-      //       {params.value
-      //         ? (() => {
-      //             const [year, month] = params.value.split("-");
-      //             if (!year || !month) return "";
-      //             const date = new Date(year, parseInt(month, 10) - 1);
-      //             if (isNaN(date.getTime())) return params.value;
-      //             return `${date.toLocaleString("default", { month: "short" })}-${year}`;
-      //           })()
-      //         : ""}
-      //     </span>
-      //   )
       : undefined,
 })),
     ],
