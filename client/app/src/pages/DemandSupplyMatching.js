@@ -753,18 +753,37 @@ function DemandSupplyMatching() {
 
   const processRowUpdate = async (newRow) => {
     // Validation: If Fulfilment Plan is not "Open", check required fields
-    console.log("Processing row update for Id:", newRow["Identified Asso Id Ext Candidate Id"]);
-    console.log("Processing row update for name:", newRow["Identified Assoc Name"]);
     if (
       newRow["Fulfilment Plan"] &&
-      newRow["Fulfilment Plan"].toLowerCase() !== "open" &&
+      (
+        newRow["Fulfilment Plan"].toLowerCase() === "identified genc" || 
+        newRow["Fulfilment Plan"].toLowerCase() === "identified fte" || 
+        newRow["Fulfilment Plan"].toLowerCase() === "cwr conversion" ||
+        (newRow["Fulfilment Plan"].toLowerCase() === "identified hiring in progress" && newRow["Off Onsite"].toLowerCase() === "offshore")
+      ) &&
       (
         !newRow["Identified Asso Id Ext Candidate Id"] ||
         !newRow["Identified Assoc Name"]
       )
     ) {
       setValidationMsg(
-        "Identified Asso Id Ext Candidate Id and Identified Assoc Name are mandatory when Fulfilment Plan is not 'Open'."
+        "Identified Asso Id Ext Candidate Id and Identified Assoc Name are mandatory for selected Fulfilment Plan"
+      );
+      setValidationOpen(true);
+      lastEditRowId.current = newRow.item_id; // <-- Store the id
+      throw new Error("Validation failed");
+    }
+    else if (
+      newRow["Fulfilment Plan"] &&
+      (
+        newRow["Fulfilment Plan"].toLowerCase() === "identified hiring in progress" && newRow["Off Onsite"].toLowerCase() === "onsite"
+      ) &&
+      (
+        !newRow["Identified Assoc Name"]
+      )
+    ) {
+      setValidationMsg(
+        "Identified Assoc Name is mandatory for selected Fulfilment Plan"
       );
       setValidationOpen(true);
       lastEditRowId.current = newRow.item_id; // <-- Store the id
