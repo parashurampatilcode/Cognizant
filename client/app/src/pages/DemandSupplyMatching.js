@@ -367,36 +367,33 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
   };
 
   const handleBlur = async () => {
-    if (inputValue && inputValue !== value) {
+    // Always update the ID field, even if empty
+    gridApi.setEditCellValue({
+      id,
+      field,
+      value: inputValue,
+    });
+
+    if (inputValue) {
       setIsLoading(true);
       try {
-        // Update the ID field
-        gridApi.setEditCellValue({
-          id,
-          field,
-          value: inputValue,
-        });
-
         // Fetch employee name and grade
         const response = await api.get("/employees/getEmployeeById", {
           params: { employeeId: inputValue },
         });
-        
+
         if (response.data && response.data.employee_name) {
-          // Update the name field
           gridApi.setEditCellValue({
             id,
             field: "Identified Assoc Name",
             value: response.data.employee_name,
           });
-          // Update the grade field
           gridApi.setEditCellValue({
             id,
             field: "Grades",
             value: response.data.grade,
           });
         } else {
-          // Clear employee name and grade if no match found
           gridApi.setEditCellValue({
             id,
             field: "Identified Assoc Name",
@@ -410,7 +407,6 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
         }
       } catch (error) {
         console.error("Error fetching employee name:", error);
-        // Clear employee name and grade in case of error
         gridApi.setEditCellValue({
           id,
           field: "Identified Assoc Name",
@@ -424,6 +420,18 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
       } finally {
         setIsLoading(false);
       }
+    } else {
+      // If input is empty, clear related fields
+      gridApi.setEditCellValue({
+        id,
+        field: "Identified Assoc Name",
+        value: "",
+      });
+      gridApi.setEditCellValue({
+        id,
+        field: "Grades",
+        value: "",
+      });
     }
   };
 
@@ -465,6 +473,10 @@ function DemandSupplyMatching() {
   const [auditLoading, setAuditLoading] = useState(false);
 
   const [dropdownOptions, setDropdownOptions] = useState({});
+
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationMsg, setValidationMsg] = useState("");
+  const lastEditRowId = useRef(null);
   
   const editableColumns = [
     "Demand Type",
@@ -645,6 +657,7 @@ function DemandSupplyMatching() {
 
   const handleSaveClick = useCallback(
     (id) => async () => {
+      
       const updatedRow = data.find((row) => row.item_id === id);
       const payload = {
         SoId: updatedRow["So Id"],
@@ -739,13 +752,47 @@ function DemandSupplyMatching() {
   }, [data, columns, searchText]);
 
   const processRowUpdate = async (newRow) => {
+    // Validation: If Fulfilment Plan is not "Open", check required fields
+    console.log("Processing row update for Id:", newRow["Identified Asso Id Ext Candidate Id"]);
+    console.log("Processing row update for name:", newRow["Identified Assoc Name"]);
+    if (
+      newRow["Fulfilment Plan"] &&
+      newRow["Fulfilment Plan"].toLowerCase() !== "open" &&
+      (
+        !newRow["Identified Asso Id Ext Candidate Id"] ||
+        !newRow["Identified Assoc Name"]
+      )
+    ) {
+      setValidationMsg(
+        "Identified Asso Id Ext Candidate Id and Identified Assoc Name are mandatory when Fulfilment Plan is not 'Open'."
+      );
+      setValidationOpen(true);
+      lastEditRowId.current = newRow.item_id; // <-- Store the id
+      throw new Error("Validation failed");
+    }
+
+     // --- NEW VALIDATION FOR SUPPLY SOURCE ---
+  if (
+    newRow["Supply Source"] &&
+    (
+      newRow["Supply Source"] === "Rotation w backfill" ||
+      newRow["Supply Source"] === "Rotation wo backfill"
+    ) &&
+    (!newRow["Rotation So"] || newRow["Rotation So"].toString().trim() === "")
+  ) {
+    setValidationMsg(
+      "Rotation So is mandatory when Supply Source is 'Rotation W backfill' or 'Rotation wo backfill'."
+    );
+    setValidationOpen(true);
+    lastEditRowId.current = newRow.item_id;
+    throw new Error("Validation failed");
+  }
+    
     const updatedRow = { ...newRow, isNew: false };
     try {
       const payload = {
         SoId: updatedRow["So Id"],
-        SOLineStatus: updatedRow["So Line Status"
-
-        ],
+        SOLineStatus: updatedRow["So Line Status" ],
         ...editableColumns.reduce((acc, col) => {
           acc[col] = updatedRow[col];
           return acc;
@@ -782,6 +829,7 @@ function DemandSupplyMatching() {
           return row;
         })
       );
+      lastEditRowId.current = null;
     } catch (error) {
       console.error("Error saving row:", error);
       throw error;
@@ -1082,6 +1130,37 @@ function DemandSupplyMatching() {
           onRowEditStart={handleRowEditStart}
           onRowEditStop={handleRowEditStop}
           processRowUpdate={processRowUpdate}
+          onProcessRowUpdateError={(error, params) => {
+            // Use the lastEditRowId ref to ensure correct row
+            const id = lastEditRowId.current || params?.id;
+            if (id) {
+              setRowModesModel((prev) => ({
+                ...prev,
+                [id]: {
+                  mode: "edit",
+                  ignoreModifications: false,
+                },
+              }));
+              // Optionally, force a re-render to keep Save icon visible
+              setData((prevData) =>
+                prevData.map((row) =>
+                  row.item_id === id
+                    ? { ...row, _forceEdit: Date.now() }
+                    : row
+                )
+              );
+            }
+          }}
+          onCellEditCommit={(params) => {
+            console.log("Cell committed:", params.field, params.value);
+            setData((prevData) =>
+              prevData.map((row) =>
+                row.item_id === params.id
+                  ? { ...row, [params.field]: params.value }
+                  : row
+              )
+            );
+          }}
           getRowClassName={getRowClassName}
           sx={{
             "& .row-editing": {
@@ -1135,6 +1214,18 @@ function DemandSupplyMatching() {
         <DialogActions>
           <Button onClick={handleAuditClose} color="primary">
             Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={validationOpen} onClose={() => setValidationOpen(false)}>
+        <DialogTitle>Validation Error</DialogTitle>
+        <DialogContent>
+          <Typography>{validationMsg}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationOpen(false)} color="primary">
+            OK
           </Button>
         </DialogActions>
       </Dialog>
