@@ -22,6 +22,18 @@ const Demand = {
         throw new Error("No data provided for insertion.");
       }
 
+      // Filter out records where BU is "Internal"
+    const filteredDataArray = dataArray.filter((data) => {
+      // Handle both "BU" and "bu" keys, just in case
+      const buValue = data.BU || data.bu || data["Bu"] || data["bu"];
+      return String(buValue).trim().toLowerCase() !== "internal";
+    });
+
+    if (filteredDataArray.length === 0) {
+      // Nothing to insert
+      return [];
+    }
+
       const columnNames = [
         "so_line_status",
         "unique_id",
@@ -228,6 +240,8 @@ const Demand = {
        // "modified_date",
        // "modified_by",
        // "is_active", // Added is_active
+       "edl_id",
+       "edl_name"
       ];
 
       const allValues = dataArray.map((data, rowIndex) => {

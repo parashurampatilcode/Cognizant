@@ -603,7 +603,7 @@ function DemandSupplyMatching() {
         }
 
      
-
+ 
         // Move specified columns after editable columns
         const moveAfterEditable = [
           "Job Code",
@@ -637,7 +637,8 @@ function DemandSupplyMatching() {
         if (effMonthIdx > -1 && allocationWeekIdx > -1 && effMonthIdx !== allocationWeekIdx + 1) {
           const [effMonthCol] = cols.splice(effMonthIdx, 1);
           cols.splice(allocationWeekIdx + 1, 0, effMonthCol);
-        }  
+        } 
+          
           setColumns(cols);
         }
       } catch (error) {
