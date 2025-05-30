@@ -203,7 +203,7 @@ router.post("/update", async (req, res) => {
       CrossSkillRequired,
       RemarksDetails,
     ];
-
+    console.log("Executing query:", query, "with params:", params); // 
     await pool.query(query, params);
     res.status(200).json({ message: "Row updated successfully." });
   } catch (error) {

@@ -593,7 +593,7 @@ function DemandSupplyMatching() {
             width: 150,
           }));
           
-        
+        /*
           // Move "Project Billability Type" before the first editable column
         const pbIndex = cols.findIndex(col => col.field === "Project Billability Type");
         const firstEditableIndex = cols.findIndex(col => editableColumns.includes(col.field));
@@ -638,7 +638,7 @@ function DemandSupplyMatching() {
           const [effMonthCol] = cols.splice(effMonthIdx, 1);
           cols.splice(allocationWeekIdx + 1, 0, effMonthCol);
         } 
-          
+          */
           setColumns(cols);
         }
       } catch (error) {
