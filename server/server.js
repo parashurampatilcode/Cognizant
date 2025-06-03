@@ -8,6 +8,9 @@ const demandRoutes = require("./routes/demand");
 const lateralHiringRouter = require("./routes/lateralHiring");
 const demandSelectRoutes = require("./routes/demandselect"); // Ensure the path is correct
 const employeesRouter = require("./routes/employees");
+const userRoutes = require("./routes/user"); // ADD THIS LINE
+const authRoutes = require("./routes/auth"); // Import the auth routes
+
 require("dotenv").config();
 
 const app = express();
@@ -27,6 +30,8 @@ app.use("/lateralHiring", lateralHiringRouter);
 app.use("/dashboard", require("./routes/dashboard"));
 app.use("/demandselect", demandSelectRoutes); // Register the demandselect routes
 app.use("/employees", employeesRouter); // Make sure employees routes are registered
+app.use("/api/user", userRoutes); // ADD THIS LINE
+app.use("/api/auth", authRoutes); // Register the auth routes
 
 // Start the server
 app.listen(port, () => {

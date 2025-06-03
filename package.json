@@ -4,6 +4,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/material": "^7.0.2",
     "@mui/x-date-pickers": "^8.0.0",
+    "bcrypt": "^6.0.0",
     "concurrently": "^9.1.2",
     "dayjs": "^1.11.13",
     "html2canvas": "^1.4.1",
