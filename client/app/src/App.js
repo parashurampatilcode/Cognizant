@@ -399,7 +399,7 @@ function App() {
         </MenuWrapper>
 
         <MenuButton
-          buttonText="Demand Supply Matching"
+          buttonText="Demand Supply Mapping"
           isActive={activePage === "matching"}
           onClick={() => handlePageChange("matching")}
         />
