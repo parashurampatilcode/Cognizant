@@ -37,6 +37,7 @@ import {
   Cancel as CancelIcon,
   History as HistoryIcon,
 } from "@mui/icons-material";
+import ExportIcon from "../components/ExportIcon"; // Adjust the path based on your project structure
 
 const primaryColor = "#005EB8";
 const darkGrey = "#D3D3D3";
@@ -88,7 +89,10 @@ const DropdownEditCell = React.memo(
   ({ field, value, id, api: gridApi, options, row }) => {
     const [localOptions, setLocalOptions] = useState(options);
     const [selectedValue, setSelectedValue] = useState(value);
-
+    
+    useEffect(() => {
+      setSelectedValue(value);
+    }, [value]);
     useEffect(() => {
       const fetchDependentDropdown = async () => {
         
@@ -381,7 +385,7 @@ const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
         const response = await api.get("/employees/getEmployeeById", {
           params: { employeeId: inputValue },
         });
-
+        console.log("Employee responses:", response.data);
         if (response.data && response.data.employee_name) {
           gridApi.setEditCellValue({
             id,
@@ -669,21 +673,9 @@ function DemandSupplyMatching() {
         }, {}),
       };
       try {
+        
         await api.post("/demand/update", payload);
-        // Integrate audit procedure call
-        const auditPayload = {
-          soid: updatedRow["So Id"],
-          status: updatedRow["So Line Status"],
-          roles: null,
-          modifieddate: new Date().toISOString(),
-          modifiedby: pdlName,
-          notes:
-            updatedRow.RemarksDetails ||
-            updatedRow.remarks ||
-            updatedRow.remarks_details ||
-            "",
-        };
-        await api.post("/demand/audit_insert", auditPayload);
+        
         setRowModesModel((prevModel) => ({
           ...prevModel,
           [id]: { mode: "view" },
@@ -819,6 +811,16 @@ function DemandSupplyMatching() {
         }, {}),
       };
       await api.post("/demand/update", payload);
+      
+        
+      const token = localStorage.getItem("token");
+      console.log("Token:", token);
+      await api.post("/demand/audit_insert", payload,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
 
       setData((prevData) =>
@@ -1122,6 +1124,12 @@ function DemandSupplyMatching() {
         }}
       />
       <div style={{ height: 600, width: "100%" }}>
+      <ExportIcon
+                exportRows={filteredRows}
+                exportColumns={columnsWithActions}
+                exportTableRef={gridRef}
+                reportName="DemandSupplyMapping_Report"
+              />
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
@@ -1210,7 +1218,22 @@ function DemandSupplyMatching() {
                   { field: "auditid", headerName: "Audit ID", width: 100 },
                   { field: "so_id", headerName: "SO ID", width: 150 },
                   { field: "status", headerName: "Status", width: 120 },
-                  { field: "roles", headerName: "Roles", width: 150 },
+                  { field: "demand_type", headerName: "Demand Type", width: 200 },
+                  { field: "demand_status", headerName: "Demand Status", width: 200 },
+                  { field: "fulfilment_plan", headerName: "Fulfilment Plan", width: 200 },
+                  { field: "demand_category", headerName: "Demand Category", width: 200 },
+                  { field: "supply_source", headerName: "Supply Source", width: 200 },
+                  { field: "cross_skill_required_yes_no", headerName: "Cross Skill Required", width: 200 },
+                  { field: "rotation_so", headerName: "Rotation So", width: 200 },
+                  { field: "supply_account", headerName: "Supply Account", width: 200 },
+                  { field: "identified_assoc_id_external_candidate_id", headerName: "Identified Asso Id Ext Candidate Id", width: 200 },
+                  { field: "identified_assoc_name", headerName: "Identified Assoc Name", width: 200 },
+                  { field: "grade", headerName: "Grade", width: 200 },
+                  { field: "joining_allocation_date", headerName: "Allocation Date", width: 200 },
+                  { field: "allocation_week", headerName: "Allocation Week", width: 200 },
+                  { field: "eff_month", headerName: "Eff Month", width: 200 },
+                  { field: "included_in_forecast", headerName: "Included In Forecast", width: 200 },
+                  { field: "remarks_details", headerName: "Remarks Details", width: 200 },
                   {
                     field: "modified_date",
                     headerName: "Modified Date",

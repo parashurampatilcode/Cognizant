@@ -7,6 +7,26 @@ const pool = require("../config/db");
 // Multer configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
+const jwt = require("jsonwebtoken");
+
+// Replace with your JWT secret or use your public key if using RS256
+const JWT_SECRET = process.env.JWT_SECRET;
+
+function getLoggedInUserId(req) {
+  const authHeader = req.headers.authorization || req.headers.Authorization;
+  console.log("Authorization header:", authHeader); // Debug
+  if (!authHeader || !authHeader.startsWith("Bearer ")) return null;
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    console.log("Decoded JWT:", decoded); // Debug
+    return decoded.username || decoded.id || decoded.sub || null;
+  } catch (e) {
+    console.error("JWT decode error:", e);
+    return null;
+  }
+}
+
 
 // Get all Demand records
 router.get("/", async (req, res) => {
@@ -254,14 +274,18 @@ router.get("/dropdownBySubType", async (req, res) => {
 
 router.get("/audit_history", async (req, res) => {
   const { unique_id } = req.query;
+  
   if (!unique_id) {
     return res.status(400).json({ error: "unique_id is required" });
   }
   try {
     const query = `
-      SELECT sdm_audit_history as auditid, so_id, status, roles, modified_date, modified_by, comments
+      SELECT sdm_audit_history as auditid, so_id, status, roles, modified_date, modified_by, comments, demand_type, demand_status,
+      fulfilment_plan, demand_category, supply_source, rotation_so, supply_account,identified_assoc_id_external_candidate_id ,
+      identified_assoc_name, grade, eff_month, joining_allocation_date, allocation_week, included_in_forecast, cross_skill_required_yes_no,
+      remarks_details
       FROM public.ds_sdm_audit_history
-      WHERE so_id = $1
+      WHERE so_id = $1 order by modified_date desc
     `;
     const { rows } = await pool.query(query, [unique_id]);
     res.json(rows);
@@ -272,18 +296,45 @@ router.get("/audit_history", async (req, res) => {
 });
 
 router.post("/audit_insert", async (req, res) => {
-  const { soid, status, roles, modifieddate, modifiedby, notes } = req.body;
+  const userId = getLoggedInUserId(req);
+  console.log("User ID from JWT:", userId); // Debug
+  const SoId = req.body.SoId;
+  const SOLineStatus = req.body.SOLineStatus;
+  const DemandType = req.body["Demand Type"];
+  const DemandStatus = req.body["Demand Status"];
+  const FulfilmentPlan = req.body["Fulfilment Plan"];
+  const DemandCategory = req.body["Demand Category"];
+  const SupplySource = req.body["Supply Source"];
+  const RotationSO = req.body["Rotation So"];
+  const SupplyAccount = req.body["Supply Account"];
+  const IdentifiedAssoIdExtCandidateId =
+    req.body["Identified Asso Id Ext Candidate Id"];
+  const IdentifiedAssocName = req.body["Identified Assoc Name"];
+  const Grades = req.body.Grades;
+  const EffMonth = req.body["Eff Month"];
+  const AllocationDate = req.body["Allocation Date"];
+  const AllocationWeek = req.body["Allocation Week"];
+  const IncludedInForecast = req.body["Included In Forecast"];
+  const CrossSkillRequired = req.body["Cross Skill Required"];
+  const RemarksDetails = req.body["Remarks Details"];
+  //console.log("User ID from JWT:", userId); // Debug log
+  //const { soid, status, roles, demandType, demandStatus, notes,fulfilmentPlan,demandCategory,supplySource,rotationSO,supplyAccount,
+   // identifiedAssoIdExtCandidateId,identifiedAssocName,grades,effMonth,allocationDate,allocationWeek,includedInForecast,crossSkillRequired,
+   // remarksDetails } = req.body;
   // Updated required parameters: make 'status' optional
-  if (!soid || !modifieddate || !modifiedby) {
+  if (!SoId) {
     return res.status(400).json({
-      error: "Missing required parameters: soid, modifieddate, or modifiedby",
+      error: "Missing required parameters: soid",
     });
   }
-  const auditStatus = status || ""; // default to an empty string if not provided
+  const auditStatus = SOLineStatus || ""; // default to an empty string if not provided
 
   try {
-    const query = `CALL public.dsm_audit_insert($1, $2, $3, $4, $5, $6)`;
-    const params = [soid, auditStatus, roles, modifieddate, modifiedby, notes];
+    const query = `CALL public.ds_insert_so_data_to_audit_history($1, $2, $3, $4, $5, $6, $7, $8, $9,
+       $10, $11, $12, $13, $14, $15, $16, $17, $18,$19, $20, $21)`;
+    const params = [SoId, auditStatus, "",userId,"",AllocationWeek ,CrossSkillRequired,DemandCategory,DemandStatus,DemandType,
+      EffMonth, FulfilmentPlan,Grades,IdentifiedAssoIdExtCandidateId,IdentifiedAssocName,IncludedInForecast,RemarksDetails,RotationSO,
+      SupplyAccount, SupplySource, AllocationDate];
     await pool.query(query, params);
     res.json({ message: "Audit record inserted successfully." });
   } catch (error) {
