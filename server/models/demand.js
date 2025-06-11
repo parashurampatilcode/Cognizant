@@ -1,5 +1,5 @@
 const pool = require("../config/db");
-
+const keyMapping = require("../config/DemamdColumnMapping.json");
 const Demand = {
   getAll: async () => {
     try {
@@ -86,7 +86,7 @@ const Demand = {
         "eff_month",
         "joining_allocation_date",
         "allocation_week",
-        "included_in_forecast_y_n", // changed
+        "included_in_forecast", // changed
         "cross_skill_required_yes_no", //changed
         "remarks_details",
         "cluster_description",
@@ -246,14 +246,24 @@ const Demand = {
 
       const allValues = dataArray.map((data, rowIndex) => {
         const normalizedData = Object.keys(data).reduce((acc, key) => {
+          //console.log("key: " + key + " value: " + data[key]);
+          // const normalizedKey = key
+          //   .trim() // Remove leading/trailing spaces
+          //   .replace(/\s+/g, " ") // Replace multiple spaces with single space
+          //   .replace(/[^a-zA-Z0-9\s]/g, "_") // Replace special chars with underscore
+          //   .replace(/\s/g, "_") // Replace remaining spaces with underscore
+          //   .replace(/_+/g, "_") // Replace multiple underscores with single underscore
+          //   .toLowerCase(); // Convert to lowercase
+          // // acc[normalizedKey] = data[key];
+         
+          // // Map normalizedKey to original key using the mapping file
           const normalizedKey = key
-            .trim() // Remove leading/trailing spaces
-            .replace(/\s+/g, " ") // Replace multiple spaces with single space
-            .replace(/[^a-zA-Z0-9\s]/g, "_") // Replace special chars with underscore
-            .replace(/\s/g, "_") // Replace remaining spaces with underscore
-            .replace(/_+/g, "_") // Replace multiple underscores with single underscore
-            .toLowerCase(); // Convert to lowercase
-          acc[normalizedKey] = data[key];
+             .trim() // Remove leading/trailing spaces
+          const dbColumnNameFromMapping = keyMapping[normalizedKey];
+          acc[dbColumnNameFromMapping] = data[key];
+          
+          //console.log("Normalized key: " + normalizedKey + " value: " + data[key]);
+          
           return acc;
         }, {});
 
