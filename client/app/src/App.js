@@ -31,6 +31,7 @@ import PDPVCDP from "./pages/PDPVCDP";
 import AddUserForm from "./components/AddUserForm";
 import LoginPage from "./components/LoginPage";
 import ChangePasswordPage from "./components/ChangePasswordPage";
+import ManageUsersPage from "./components/ManageUsersPage";
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
@@ -231,7 +232,7 @@ function App() {
       case "addUser":
         return <AddUserForm />;
       case "manageUsers":
-        return <div>Manage Users</div>;
+        return <ManageUsersPage />;
       case "reports":
         return <Reports />;
       case "maintenance":

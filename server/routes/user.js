@@ -148,4 +148,100 @@ router.post("/change-password", authenticateJWT, async (req, res) => {
   }
 });
 
+// GET /api/user/all-users
+router.get("/all-users", authenticateJWT, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM public.ds_get_all_user_details()"
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+// POST /api/user/update-user
+router.post("/update-user", authenticateJWT, async (req, res) => {
+  try {
+    const {
+      username,
+      email,
+      firstName,
+      lastName,
+      roles,
+      market,
+      buname,
+      sbuname,
+      parentAccountName,
+      comments,
+    } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+    await pool.query(
+      `SELECT ds_manage_user(
+        p_operation := 'update',
+        p_username := $1,
+        p_password := NULL,
+        p_email := $2,
+        p_first_name := $3,
+        p_last_name := $4,
+        p_role := $5,
+        p_bu := $6,
+        p_sbu := $7,
+        p_parent_account := $8,
+        p_comments := $9,
+        p_is_active := TRUE,
+        p_actor := $10
+      )`,
+      [
+        username,
+        email,
+        firstName,
+        lastName,
+        Array.isArray(roles) ? roles.join(",") : roles,
+        Array.isArray(market) ? market.join(",") : market,
+        Array.isArray(buname) ? buname.join(",") : buname,
+        Array.isArray(sbuname) ? sbuname.join(",") : sbuname,
+        parentAccountName || null,
+        req.user?.username || "admin",
+      ]
+    );
+    res.json({ message: "User updated" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update user" });
+  }
+});
+
+// POST /api/user/deactivate-user
+router.post("/deactivate-user", authenticateJWT, async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+    await pool.query(
+      `SELECT ds_manage_user(
+        p_operation := 'update',
+        p_username := $1,
+        p_password := NULL,
+        p_email := NULL,
+        p_first_name := NULL,
+        p_last_name := NULL,
+        p_role := NULL,
+        p_bu := NULL,
+        p_sbu := NULL,
+        p_parent_account := NULL,
+        p_comments := 'Deactivated',
+        p_is_active := FALSE,
+        p_actor := $2
+      )`,
+      [username, req.user?.username || "admin"]
+    );
+    res.json({ message: "User deactivated" });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to deactivate user" });
+  }
+});
+
 module.exports = router;
