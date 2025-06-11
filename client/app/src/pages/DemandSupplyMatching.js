@@ -37,6 +37,7 @@ import {
   Cancel as CancelIcon,
   History as HistoryIcon,
 } from "@mui/icons-material";
+import ExportIcon from "../components/ExportIcon"; // Adjust the path based on your project structure
 
 const primaryColor = "#005EB8";
 const darkGrey = "#D3D3D3";
@@ -1123,6 +1124,12 @@ function DemandSupplyMatching() {
         }}
       />
       <div style={{ height: 600, width: "100%" }}>
+      <ExportIcon
+                exportRows={filteredRows}
+                exportColumns={columnsWithActions}
+                exportTableRef={gridRef}
+                reportName="DemandSupplyMapping_Report"
+              />
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
