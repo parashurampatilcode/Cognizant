@@ -39,6 +39,25 @@ router.get("/dropdown-options", authenticateJWT, async (req, res) => {
   }
 });
 
+// GET /api/user/hierarchy-dropdown
+router.get("/hierarchy-dropdown", authenticateJWT, async (req, res) => {
+  try {
+    const { market, bu, sbu } = req.query;
+    // Prepare parameters as CSV or NULL
+    const marketCsv = market && market !== "null" ? market : null;
+    const buCsv = bu && bu !== "null" ? bu : null;
+    const sbuCsv = sbu && sbu !== "null" ? sbu : null;
+    // Call the database function
+    const query = `SELECT * FROM ds_get_market_bu_sbu_hierarchy($1, $2, $3)`;
+    const { rows } = await pool.query(query, [marketCsv, buCsv, sbuCsv]);
+    res.json(rows);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: "Failed to fetch hierarchy dropdown options" });
+  }
+});
+
 // POST /api/user/add-user
 router.post("/add-user", authenticateJWT, async (req, res) => {
   try {

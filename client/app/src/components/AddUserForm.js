@@ -44,10 +44,14 @@ const AddUserForm = () => {
     market: [],
     buname: [],
     sbuname: [],
+    parentAccountName: [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [buDisabled, setBuDisabled] = useState(true);
+  const [sbuDisabled, setSbuDisabled] = useState(true);
+  const [parentAccountDisabled, setParentAccountDisabled] = useState(true);
 
   useEffect(() => {
     const fetchDropdowns = async () => {
@@ -59,8 +63,9 @@ const AddUserForm = () => {
         setDropdowns({
           roles: data.roles,
           market: data.market,
-          buname: data.buname,
-          sbuname: data.sbuname,
+          buname: [], // Start empty, will be populated dynamically
+          sbuname: [],
+          parentAccountName: [],
         });
       } catch (err) {
         setError("Failed to load dropdown options");
@@ -71,12 +76,149 @@ const AddUserForm = () => {
     fetchDropdowns();
   }, []);
 
+  // Fetch BU when Market changes
+  useEffect(() => {
+    if (form.market.length > 0) {
+      setBuDisabled(false);
+      const fetchBU = async () => {
+        try {
+          setLoading(true);
+          const marketCsv = form.market.map((m) => m.value).join(",");
+          const { data } = await axios.get(`${apiUrl}/hierarchy-dropdown`, {
+            params: { market: marketCsv },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          setDropdowns((prev) => ({
+            ...prev,
+            buname: data.map((item) => ({
+              value: item.ds_get_market_bu_sbu_hierarchy,
+              label: item.ds_get_market_bu_sbu_hierarchy,
+            })),
+          }));
+        } catch {
+          setDropdowns((prev) => ({ ...prev, buname: [] }));
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchBU();
+    } else {
+      setBuDisabled(true);
+      setDropdowns((prev) => ({ ...prev, buname: [] }));
+      setForm((prev) => ({
+        ...prev,
+        buname: [],
+        sbuname: [],
+        parentAccountName: "",
+      }));
+      setSbuDisabled(true);
+      setParentAccountDisabled(true);
+    }
+  }, [form.market]);
+
+  // Fetch SBU when Market and BU change
+  useEffect(() => {
+    if (form.market.length > 0 && form.buname.length > 0) {
+      setSbuDisabled(false);
+      const fetchSBU = async () => {
+        try {
+          setLoading(true);
+          const marketCsv = form.market.map((m) => m.value).join(",");
+          const buCsv = form.buname.map((b) => b.value).join(",");
+          const { data } = await axios.get(`${apiUrl}/hierarchy-dropdown`, {
+            params: { market: marketCsv, bu: buCsv },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          setDropdowns((prev) => ({
+            ...prev,
+            sbuname: data.map((item) => ({
+              value: item.ds_get_market_bu_sbu_hierarchy,
+              label: item.ds_get_market_bu_sbu_hierarchy,
+            })),
+          }));
+        } catch {
+          setDropdowns((prev) => ({ ...prev, sbuname: [] }));
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchSBU();
+    } else {
+      setSbuDisabled(true);
+      setDropdowns((prev) => ({ ...prev, sbuname: [] }));
+      setForm((prev) => ({
+        ...prev,
+        sbuname: [],
+        parentAccountName: "",
+      }));
+      setParentAccountDisabled(true);
+    }
+  }, [form.market, form.buname]);
+
+  // Fetch Parent Account Name when Market, BU, and SBU change
+  useEffect(() => {
+    if (
+      form.market.length > 0 &&
+      form.buname.length > 0 &&
+      form.sbuname.length > 0
+    ) {
+      setParentAccountDisabled(false);
+      const fetchParentAccount = async () => {
+        try {
+          setLoading(true);
+          const marketCsv = form.market.map((m) => m.value).join(",");
+          const buCsv = form.buname.map((b) => b.value).join(",");
+          const sbuCsv = form.sbuname.map((s) => s.value).join(",");
+          const { data } = await axios.get(`${apiUrl}/hierarchy-dropdown`, {
+            params: { market: marketCsv, bu: buCsv, sbu: sbuCsv },
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          });
+          setDropdowns((prev) => ({
+            ...prev,
+            parentAccountName: data.map((item) => ({
+              value: item.ds_get_market_bu_sbu_hierarchy,
+              label: item.ds_get_market_bu_sbu_hierarchy,
+            })),
+          }));
+        } catch {
+          setDropdowns((prev) => ({ ...prev, parentAccountName: [] }));
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchParentAccount();
+    } else {
+      setParentAccountDisabled(true);
+      setDropdowns((prev) => ({ ...prev, parentAccountName: [] }));
+      setForm((prev) => ({ ...prev, parentAccountName: "" }));
+    }
+  }, [form.market, form.buname, form.sbuname]);
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
   const handleSelectChange = (name) => (selected) => {
-    setForm({ ...form, [name]: selected || [] });
+    setForm((prev) => ({ ...prev, [name]: selected || [] }));
+    // Reset dependent dropdowns
+    if (name === "market") {
+      setForm((prev) => ({
+        ...prev,
+        buname: [],
+        sbuname: [],
+        parentAccountName: "",
+      }));
+    } else if (name === "buname") {
+      setForm((prev) => ({ ...prev, sbuname: [], parentAccountName: "" }));
+    } else if (name === "sbuname") {
+      setForm((prev) => ({ ...prev, parentAccountName: "" }));
+    }
   };
 
   const validateEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
@@ -250,7 +392,7 @@ const AddUserForm = () => {
         <Box mt={2} /> {/* Add margin top for spacing */}
         <Box mt={1}>
           <Typography>BU Name</Typography>
-          <FormControl fullWidth margin="normal" required>
+          <FormControl fullWidth margin="normal" required disabled={buDisabled}>
             <Select
               isMulti
               name="buname"
@@ -259,12 +401,18 @@ const AddUserForm = () => {
               onChange={handleSelectChange("buname")}
               placeholder="Select BU Name"
               closeMenuOnSelect={false}
+              isDisabled={buDisabled}
             />
           </FormControl>
         </Box>
         <Box mt={1}>
           <Typography>SBU Name</Typography>
-          <FormControl fullWidth margin="normal" required>
+          <FormControl
+            fullWidth
+            margin="normal"
+            required
+            disabled={sbuDisabled}
+          >
             <Select
               isMulti
               name="sbuname"
@@ -273,17 +421,37 @@ const AddUserForm = () => {
               onChange={handleSelectChange("sbuname")}
               placeholder="Select SBU Name"
               closeMenuOnSelect={false}
+              isDisabled={sbuDisabled}
             />
           </FormControl>
         </Box>
-        <TextField
-          label="Parent Account Name"
-          name="parentAccountName"
-          value={form.parentAccountName}
-          onChange={handleChange}
-          fullWidth
-          margin="normal"
-        />
+        <Box mt={1}>
+          <Typography>Parent Account Name</Typography>
+          <FormControl
+            fullWidth
+            margin="normal"
+            disabled={parentAccountDisabled}
+          >
+            <Select
+              name="parentAccountName"
+              options={dropdowns.parentAccountName}
+              value={
+                dropdowns.parentAccountName.find(
+                  (opt) => opt.value === form.parentAccountName
+                ) || null
+              }
+              onChange={(selected) =>
+                setForm((prev) => ({
+                  ...prev,
+                  parentAccountName: selected ? selected.value : "",
+                }))
+              }
+              placeholder="Select Parent Account Name"
+              isDisabled={parentAccountDisabled}
+              isClearable
+            />
+          </FormControl>
+        </Box>
         <TextField
           label="Comments"
           name="comments"
