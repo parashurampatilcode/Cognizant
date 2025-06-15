@@ -87,35 +87,33 @@ router.post("/add-user", authenticateJWT, async (req, res) => {
     }
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    // Call stored procedure
-    const result = await pool.query(
-      `SELECT ds_manage_user(
-        p_operation := 'create',
-        p_username := $1,
-        p_password := $2,
-        p_email := $3,
-        p_first_name := $4,
-        p_last_name := $5,
-        p_role := $6,
-        p_bu := $8,
-        p_sbu := $9,
-        p_parent_account := $10,
-        p_comments := $11,
-        p_is_active := TRUE,
-        p_actor := $12
-      )`,
+    // Call ds_manage_user_info to create user
+    await pool.query(
+      `SELECT ds_manage_user_info($1, $2, $3, $4, $5, $6, $7, $8)`,
       [
+        "create",
         username,
         hashedPassword,
         email,
         firstName,
         lastName,
+        true, // Always TRUE
+        req.user?.username || "admin", // actor
+      ]
+    );
+    // Call ds_create_user_role_mappings to map roles and hierarchy
+    await pool.query(
+      `SELECT ds_create_user_role_mappings($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        username,
         Array.isArray(roles) ? roles.join(",") : roles,
         Array.isArray(market) ? market.join(",") : market,
         Array.isArray(buname) ? buname.join(",") : buname,
         Array.isArray(sbuname) ? sbuname.join(",") : sbuname,
-        parentAccountName || null,
-        req.user?.username || "admin", // fallback if JWT doesn't have username
+        Array.isArray(parentAccountName)
+          ? parentAccountName.join(",")
+          : parentAccountName,
+        req.user?.username || "admin",
       ]
     );
     res.json({ message: "User created" });
@@ -156,7 +154,7 @@ router.post("/change-password", authenticateJWT, async (req, res) => {
         p_sbu := NULL,
         p_parent_account := NULL,
         p_comments := 'Password changed',
-        p_is_active := TRUE,
+        p_is_active := 1,
         p_actor := $1
       )`,
       [username, hashedPassword]
@@ -210,7 +208,7 @@ router.post("/update-user", authenticateJWT, async (req, res) => {
         p_sbu := $7,
         p_parent_account := $8,
         p_comments := $9,
-        p_is_active := TRUE,
+        p_is_active := 1,
         p_actor := $10
       )`,
       [
@@ -252,7 +250,7 @@ router.post("/deactivate-user", authenticateJWT, async (req, res) => {
         p_sbu := NULL,
         p_parent_account := NULL,
         p_comments := 'Deactivated',
-        p_is_active := FALSE,
+        p_is_active := 0,
         p_actor := $2
       )`,
       [username, req.user?.username || "admin"]
