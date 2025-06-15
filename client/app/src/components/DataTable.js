@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef } from "react";
 import html2canvas from "html2canvas";
-import { DataGrid, GridToolbarContainer } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 import { styled } from "@mui/material/styles";
-import { InputBase } from "@mui/material";
+import { InputBase, Box } from "@mui/material";
 
 // Custom styled DataGrid
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
@@ -31,8 +31,12 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
 }));
 
-function DataTable({ rows, columns,getRowId }) {
-  console.log("DataTable getRowId:", getRowId); 
+function DataTable({
+  rows,
+  columns,
+  getRowId,
+  searchPlaceholder = "Global Search...",
+}) {
   const [searchText, setSearchText] = useState("");
   const gridRef = useRef(null);
 
@@ -40,7 +44,7 @@ function DataTable({ rows, columns,getRowId }) {
     if (!searchText) return rows;
     return rows.filter((row) =>
       columns.some((column) =>
-        String(row[column.field])
+        String(row[column.field] ?? "")
           .toLowerCase()
           .includes(searchText.toLowerCase())
       )
@@ -49,6 +53,36 @@ function DataTable({ rows, columns,getRowId }) {
 
   return (
     <div style={{ height: 600, width: "100%" }}>
+      <Box
+        sx={{
+          padding: 1,
+          backgroundColor: "#FFFFFF",
+          borderBottom: `1px solid #D3D3D3`,
+          display: "flex",
+          alignItems: "center",
+          width: "100%",
+        }}
+      >
+        <InputBase
+          type="text"
+          placeholder={searchPlaceholder}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          fullWidth
+          sx={{
+            padding: "6px 12px",
+            marginLeft: 1,
+            borderRadius: 1,
+            backgroundColor: "#F5F5F5",
+            border: `1px solid #D3D3D3`,
+            "&:focus-within": {
+              borderColor: "#005EB8",
+            },
+            minWidth: 260,
+            width: "100%",
+          }}
+        />
+      </Box>
       <StyledDataGrid
         ref={gridRef}
         rows={filteredRows}
@@ -57,34 +91,17 @@ function DataTable({ rows, columns,getRowId }) {
         pageSize={10}
         rowsPerPageOptions={[10, 25, 50]}
         disableVirtualization
-        components={{
-          Toolbar: () => (
-            <GridToolbarContainer
-              sx={{
-                padding: 1,
-                backgroundColor: "#FFFFFF", // White background for toolbar
-                borderBottom: `1px solid #D3D3D3`, // Light grey border
-              }}
-            >
-              <InputBase
-                type="text"
-                placeholder="Search..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                sx={{
-                  padding: "6px 12px",
-                  marginLeft: 1,
-                  borderRadius: 1,
-                  backgroundColor: "#F5F5F5", // Light grey background for input
-                  border: `1px solid #D3D3D3`, // Light grey border
-                  "&:focus-within": {
-                    borderColor: "#005EB8", // Blue border on focus
-                  },
-                }}
-              />
-            </GridToolbarContainer>
-          ),
+        autoHeight={false}
+        sx={{
+          border: "none",
+          "& .MuiDataGrid-columnHeaders": {
+            backgroundColor: "#E6F0FA",
+            color: "#005EB8",
+            fontWeight: 600,
+            borderBottom: "2px solid #005EB8",
+          },
         }}
+        hideFooterSelectedRowCount
       />
     </div>
   );

@@ -177,6 +177,18 @@ router.get("/all-users", authenticateJWT, async (req, res) => {
   }
 });
 
+// GET /api/user/grouped-users
+router.get("/grouped-users", authenticateJWT, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      "SELECT * FROM get_users_with_grouped_info()"
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch grouped user data" });
+  }
+});
+
 // POST /api/user/update-user
 router.post("/update-user", authenticateJWT, async (req, res) => {
   try {

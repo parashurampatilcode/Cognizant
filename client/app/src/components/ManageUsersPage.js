@@ -2,22 +2,13 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Button,
-  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   CircularProgress,
   Alert,
-  Tooltip,
   TextField,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
@@ -26,6 +17,7 @@ import LockResetIcon from "@mui/icons-material/LockReset";
 import Select from "react-select";
 import axios from "axios";
 import ChangePasswordPage from "./ChangePasswordPage";
+import DataTable from "./DataTable";
 
 const ManageUsersPage = () => {
   const [users, setUsers] = useState([]);
@@ -44,12 +36,13 @@ const ManageUsersPage = () => {
   const [selectedUserForPassword, setSelectedUserForPassword] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Fetch users from new grouped-users endpoint
   const fetchUsers = async () => {
     setLoading(true);
     setError("");
     try {
       const { data } = await axios.get(
-        "http://localhost:5000/api/user/all-users"
+        "http://localhost:5000/api/user/grouped-users"
       );
       setUsers(data);
     } catch (err) {
@@ -156,9 +149,78 @@ const ManageUsersPage = () => {
     setSelectedUserForPassword(null);
   };
 
+  // DataTable columns config
+  const columns = [
+    {
+      field: "actions",
+      headerName: "Action",
+      sortable: false,
+      filterable: false,
+      flex: 0.6,
+      minWidth: 120,
+      renderCell: (params) => (
+        <>
+          <Button
+            size="small"
+            onClick={() => handleEdit(params.row)}
+            disabled={actionLoading}
+            sx={{ minWidth: 0, padding: 0 }}
+          >
+            <EditIcon fontSize="small" />
+          </Button>
+          <Button
+            size="small"
+            onClick={() => handleDeactivate(params.row.user_id)}
+            disabled={actionLoading || !params.row.is_active}
+            color="error"
+            sx={{ minWidth: 0, padding: 0, ml: 1 }}
+          >
+            <DeleteIcon fontSize="small" />
+          </Button>
+          <Button
+            size="small"
+            onClick={() => handleChangePassword(params.row)}
+            disabled={actionLoading}
+            color="secondary"
+            sx={{ minWidth: 0, padding: 0, ml: 1 }}
+          >
+            <LockResetIcon fontSize="small" />
+          </Button>
+        </>
+      ),
+    },
+    { field: "user_id", headerName: "User ID", flex: 1 },
+    { field: "email", headerName: "Email", flex: 1 },
+    { field: "roles", headerName: "Roles", flex: 1 },
+    { field: "markets", headerName: "Markets", flex: 1 },
+    { field: "bu_names", headerName: "BU Names", flex: 1 },
+    { field: "sbu_names", headerName: "SBU Names", flex: 1 },
+    { field: "parent_accounts", headerName: "Parent Accounts", flex: 1 },
+    {
+      field: "is_active",
+      headerName: "isActive",
+      flex: 1,
+      valueGetter: (params) =>
+        params.row && params.row.is_active ? "Yes" : "No",
+    },
+  ];
+
   return (
     <Box mt={4}>
-      <Typography variant="h5" mb={2}>
+      <Typography
+        variant="h5"
+        mb={2}
+        sx={{
+          background: "#E6F0FA", // Match Demand Supply Mapping header color
+          color: "#005EB8",
+          fontWeight: 600,
+          padding: 2,
+          borderRadius: 1,
+          borderBottom: "2px solid #005EB8",
+          letterSpacing: "0.5px",
+          textTransform: "uppercase",
+        }}
+      >
         Manage Users
       </Typography>
       {error && <Alert severity="error">{error}</Alert>}
@@ -168,75 +230,12 @@ const ManageUsersPage = () => {
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Username</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>First Name</TableCell>
-                <TableCell>Last Name</TableCell>
-                <TableCell>Roles</TableCell>
-                <TableCell>Market</TableCell>
-                <TableCell>BUName</TableCell>
-                <TableCell>SBUName</TableCell>
-                <TableCell>ParentAccountName</TableCell>
-                <TableCell>Comments</TableCell>
-                <TableCell>isActive</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.username}>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.first_name}</TableCell>
-                  <TableCell>{user.last_name}</TableCell>
-                  <TableCell>{user.roles}</TableCell>
-                  <TableCell>{user.market}</TableCell>
-                  <TableCell>{user.buname}</TableCell>
-                  <TableCell>{user.sbuname}</TableCell>
-                  <TableCell>{user.parentaccountname}</TableCell>
-                  <TableCell>{user.comments}</TableCell>
-                  <TableCell>{user.is_active ? "Yes" : "No"}</TableCell>
-                  <TableCell>
-                    <Tooltip title="Edit">
-                      <span>
-                        <IconButton
-                          onClick={() => handleEdit(user)}
-                          disabled={actionLoading}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Deactivate">
-                      <span>
-                        <IconButton
-                          onClick={() => handleDeactivate(user.username)}
-                          disabled={actionLoading || !user.is_active}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title="Change Password">
-                      <span>
-                        <IconButton
-                          onClick={() => handleChangePassword(user)}
-                          disabled={actionLoading}
-                        >
-                          <LockResetIcon />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <DataTable
+          rows={users}
+          columns={columns}
+          getRowId={(row) => row.user_id}
+          searchPlaceholder="Global Search..."
+        />
       )}
 
       {/* Edit User Dialog */}
