@@ -10,6 +10,7 @@ const demandSelectRoutes = require("./routes/demandselect"); // Ensure the path 
 const employeesRouter = require("./routes/employees");
 const userRoutes = require("./routes/user"); // ADD THIS LINE
 const authRoutes = require("./routes/auth"); // Import the auth routes
+const uniqueAllocationRoutes = require("./routes/uniqueAllocation");
 
 require("dotenv").config();
 
@@ -32,6 +33,7 @@ app.use("/demandselect", demandSelectRoutes); // Register the demandselect route
 app.use("/employees", employeesRouter); // Make sure employees routes are registered
 app.use("/api/user", userRoutes); // ADD THIS LINE
 app.use("/api/auth", authRoutes); // Register the auth routes
+app.use("/unique-allocation", uniqueAllocationRoutes);
 
 // Start the server
 app.listen(port, () => {
