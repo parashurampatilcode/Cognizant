@@ -6,13 +6,17 @@ import {
   Button,
   CircularProgress,
   Paper,
+  useTheme,
+  Grid,
 } from "@mui/material";
+import CognizantLogo from "../cognizant-logo.svg";
 import axios from "axios";
 
 const LoginPage = ({ onLogin }) => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const theme = useTheme();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -44,20 +48,39 @@ const LoginPage = ({ onLogin }) => {
 
   return (
     <Box minHeight="100vh" display="flex" flexDirection="column">
-      {/* Dashboard Banner */}
-      <Box
-        sx={{
-          backgroundColor: "#005EB8",
+      {/* Dashboard Banner - Synced with App.js */}
+      <header
+        style={{
+          backgroundColor: theme.palette.primary.main,
           color: "white",
-          py: 2,
-          px: 4,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          padding: "0px",
         }}
       >
-        <Typography variant="h5">EI Demand Supply Management</Typography>
-      </Box>
+        <Grid container direction="column">
+          <Grid
+            item
+            xs={12}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              position: "relative",
+              marginTop: 1,
+              minHeight: "56px", // Match App.js/AppBar default height
+            }}
+          >
+            <img
+              src={CognizantLogo}
+              alt="Cognizant Logo"
+              style={{ height: "30px", marginRight: "16px" }}
+            />
+            <Box sx={{ flex: 1, textAlign: "center", marginLeft: -28 }}>
+              <Typography variant="h5" component="div">
+                EI Demand Supply Management
+              </Typography>
+            </Box>
+          </Grid>
+        </Grid>
+      </header>
       <Box flex={1} display="flex" alignItems="center" justifyContent="center">
         <Paper elevation={3} sx={{ p: 4, minWidth: 350 }}>
           <Typography variant="h6" mb={2} align="center">
