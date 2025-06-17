@@ -36,12 +36,13 @@ function DataTable({
   columns,
   getRowId,
   searchPlaceholder = "Global Search...",
+  disableSearch = false,
 }) {
   const [searchText, setSearchText] = useState("");
   const gridRef = useRef(null);
 
   const filteredRows = useMemo(() => {
-    if (!searchText) return rows;
+    if (disableSearch || !searchText) return rows;
     return rows.filter((row) =>
       columns.some((column) =>
         String(row[column.field] ?? "")
@@ -49,40 +50,42 @@ function DataTable({
           .includes(searchText.toLowerCase())
       )
     );
-  }, [rows, columns, searchText]);
+  }, [rows, columns, searchText, disableSearch]);
 
   return (
     <div style={{ height: 600, width: "100%" }}>
-      <Box
-        sx={{
-          padding: 1,
-          backgroundColor: "#FFFFFF",
-          borderBottom: `1px solid #D3D3D3`,
-          display: "flex",
-          alignItems: "center",
-          width: "100%",
-        }}
-      >
-        <InputBase
-          type="text"
-          placeholder={searchPlaceholder}
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          fullWidth
+      {!disableSearch && (
+        <Box
           sx={{
-            padding: "6px 12px",
-            marginLeft: 1,
-            borderRadius: 1,
-            backgroundColor: "#F5F5F5",
-            border: `1px solid #D3D3D3`,
-            "&:focus-within": {
-              borderColor: "#005EB8",
-            },
-            minWidth: 260,
+            padding: 1,
+            backgroundColor: "#FFFFFF",
+            borderBottom: `1px solid #D3D3D3`,
+            display: "flex",
+            alignItems: "center",
             width: "100%",
           }}
-        />
-      </Box>
+        >
+          <InputBase
+            type="text"
+            placeholder={searchPlaceholder}
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            fullWidth
+            sx={{
+              padding: "6px 12px",
+              marginLeft: 1,
+              borderRadius: 1,
+              backgroundColor: "#F5F5F5",
+              border: `1px solid #D3D3D3`,
+              "&:focus-within": {
+                borderColor: "#005EB8",
+              },
+              minWidth: 260,
+              width: "100%",
+            }}
+          />
+        </Box>
+      )}
       <StyledDataGrid
         ref={gridRef}
         rows={filteredRows}

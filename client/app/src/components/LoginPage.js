@@ -37,6 +37,7 @@ const LoginPage = ({ onLogin }) => {
         password: form.password,
       });
       localStorage.setItem("token", res.data.token);
+      localStorage.setItem("username", form.username); // Store username for later use
       if (onLogin) onLogin();
       window.location.href = res.data.redirect;
     } catch (err) {

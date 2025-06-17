@@ -11,6 +11,7 @@ const employeesRouter = require("./routes/employees");
 const userRoutes = require("./routes/user"); // ADD THIS LINE
 const authRoutes = require("./routes/auth"); // Import the auth routes
 const uniqueAllocationRoutes = require("./routes/uniqueAllocation");
+const excelUploadLogRouter = require("./routes/excelUploadLog");
 
 require("dotenv").config();
 
@@ -34,6 +35,7 @@ app.use("/employees", employeesRouter); // Make sure employees routes are regist
 app.use("/api/user", userRoutes); // ADD THIS LINE
 app.use("/api/auth", authRoutes); // Register the auth routes
 app.use("/unique-allocation", uniqueAllocationRoutes);
+app.use("/api/excel-upload-log", excelUploadLogRouter);
 
 // Start the server
 app.listen(port, () => {

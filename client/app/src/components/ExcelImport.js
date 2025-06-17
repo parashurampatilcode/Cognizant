@@ -1,5 +1,5 @@
 // c:\Users\Parashuram\Projects\ei-demand-supply-tool\client\app\src\components\ExcelImport.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import {
@@ -21,6 +21,24 @@ function ExcelImport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  const [uploadLogs, setUploadLogs] = useState([]);
+
+  // Get username from localStorage or context (adjust as per your app)
+  const username = localStorage.getItem("username") || "Unknown";
+
+  // Fetch upload logs on mount and after upload
+  const fetchUploadLogs = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/excel-upload-log");
+      setUploadLogs(res.data);
+    } catch (err) {
+      // Optionally handle error
+    }
+  };
+
+  useEffect(() => {
+    fetchUploadLogs();
+  }, []);
 
   const handleTypeChange = (event) => {
     setSelectedType(event.target.value);
@@ -61,6 +79,13 @@ function ExcelImport() {
             },
           }
         );
+
+        // Log the upload
+        await axios.post("http://localhost:5000/api/excel-upload-log", {
+          fileName: selectedType,
+          uploadedBy: username,
+        });
+        fetchUploadLogs();
 
         // Display success message from the server
         if (response.data.message) {
@@ -137,6 +162,12 @@ function ExcelImport() {
           "http://localhost:5000/unique-allocation/uploadAndProcess",
           { records: filteredData }
         );
+        // Log the upload
+        await axios.post("http://localhost:5000/api/excel-upload-log", {
+          fileName: selectedType,
+          uploadedBy: username,
+        });
+        fetchUploadLogs();
         if (response.data.message) {
           setSuccessMessage(response.data.message);
         }
@@ -167,10 +198,33 @@ function ExcelImport() {
 
   return (
     <Box sx={{ padding: 3 }}>
+      {/* File Import Details Table */}
+      <Box sx={{ marginBottom: 3 }}>
+        <Typography variant="h5" sx={{ marginBottom: 1 }}>
+          File Import Details
+        </Typography>
+        <DataTable
+          rows={uploadLogs.map((log) => ({
+            id: log.out_id,
+            fileName: log.out_file_name,
+            uploadedBy: log.out_uploaded_by,
+            uploadedAt: log.out_upload_datetime
+              ? new Date(log.out_upload_datetime).toLocaleString()
+              : "",
+          }))}
+          columns={[
+            { field: "fileName", headerName: "File Name", width: 200 },
+            { field: "uploadedBy", headerName: "Uploaded By", width: 200 },
+            { field: "uploadedAt", headerName: "Uploaded At", width: 200 },
+          ]}
+          getRowId={(row) => row.id}
+          disableSearch={true}
+        />
+      </Box>
+
       <Typography variant="h5" sx={{ marginBottom: 3 }}>
         Excel Import
       </Typography>
-
       <FormControl component="fieldset" sx={{ marginBottom: 3 }}>
         <FormLabel component="legend">Select Import Type</FormLabel>
         <RadioGroup row value={selectedType} onChange={handleTypeChange}>
