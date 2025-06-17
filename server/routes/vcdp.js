@@ -34,7 +34,7 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     // Process each row and insert into database
     for (const row of jsonData) {
       try {
-        console.log("Processing row from routers vcdp:", row); // Debug
+        //console.log("Processing row from routers vcdp:", row); // Debug
         await VCDP.create(row);
       } catch (error) {
         console.error(`Error processing row:`, row);

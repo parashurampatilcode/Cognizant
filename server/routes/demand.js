@@ -121,7 +121,7 @@ router.get("/skillCountsByMonth", async (req, res) => {
     }
 
     const query =
-      "SELECT * FROM get_demand_skill_counts_by_month_pivot_v1($1, $2, $3, $4)";
+      "SELECT * FROM get_demand_skill_counts_by_month_pivot_v3($1, $2, $3, $4)";
     const queryParams = [practice, market, offOn, busUnit];
 
     const result = await pool.query(query, queryParams);
@@ -145,7 +145,7 @@ router.get("/top10AccountsCountsByMonth", async (req, res) => {
     const query =
       "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v1($1, $2, $3, $4)";
     const queryParams = [practice, market, offOn, busUnit];
-
+    console.log("Executing query:", query, "with params:", queryParams); // Debug log
     const result = await pool.query(query, queryParams);
 
     res.json(result.rows);

@@ -5,22 +5,22 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 // JWT middleware (replace with your actual middleware if different)
-function authenticateJWT(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split(" ")[1];
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-      if (err) return res.sendStatus(403);
-      req.user = user;
-      next();
-    });
-  } else {
-    res.sendStatus(401);
-  }
-}
+// function authenticateJWT(req, res, next) {
+//   const authHeader = req.headers.authorization;
+//   if (authHeader && authHeader.startsWith("Bearer ")) {
+//     const token = authHeader.split(" ")[1];
+//     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+//       if (err) return res.sendStatus(403);
+//       req.user = user;
+//       next();
+//     });
+//   } else {
+//     res.sendStatus(401);
+//   }
+// }
 
 // GET /api/user/dropdown-options
-router.get("/dropdown-options", authenticateJWT, async (req, res) => {
+router.get("/dropdown-options",  async (req, res) => {
   try {
     const query = `SELECT demand_dropdown_master_id, dd_type, key, descr, dd_sub_type FROM public.ds_demand_dropdown_master WHERE dd_type IN ('ROLES', 'MARKET', 'MARKET_UNIT', 'BUSS_UNIT_DESC')`;
     const { rows } = await pool.query(query);
@@ -40,7 +40,7 @@ router.get("/dropdown-options", authenticateJWT, async (req, res) => {
 });
 
 // GET /api/user/hierarchy-dropdown
-router.get("/hierarchy-dropdown", authenticateJWT, async (req, res) => {
+router.get("/hierarchy-dropdown",  async (req, res) => {
   try {
     const { market, bu, sbu } = req.query;
     // Prepare parameters as CSV or NULL
@@ -59,7 +59,7 @@ router.get("/hierarchy-dropdown", authenticateJWT, async (req, res) => {
 });
 
 // POST /api/user/add-user
-router.post("/add-user", authenticateJWT, async (req, res) => {
+router.post("/add-user",  async (req, res) => {
   try {
     const {
       username,
@@ -123,7 +123,7 @@ router.post("/add-user", authenticateJWT, async (req, res) => {
 });
 
 // POST /api/user/change-password
-router.post("/change-password", authenticateJWT, async (req, res) => {
+router.post("/change-password",  async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -166,7 +166,7 @@ router.post("/change-password", authenticateJWT, async (req, res) => {
 });
 
 // GET /api/user/all-users
-router.get("/all-users", authenticateJWT, async (req, res) => {
+router.get("/all-users",  async (req, res) => {
   try {
     const { rows } = await pool.query(
       "SELECT * FROM public.ds_get_all_user_details()"
@@ -178,7 +178,7 @@ router.get("/all-users", authenticateJWT, async (req, res) => {
 });
 
 // GET /api/user/grouped-users
-router.get("/grouped-users", authenticateJWT, async (req, res) => {
+router.get("/grouped-users",  async (req, res) => {
   try {
     const { rows } = await pool.query(
       "SELECT * FROM get_users_with_grouped_info()"
@@ -190,7 +190,7 @@ router.get("/grouped-users", authenticateJWT, async (req, res) => {
 });
 
 // POST /api/user/update-user
-router.post("/update-user", authenticateJWT, async (req, res) => {
+router.post("/update-user",  async (req, res) => {
   try {
     const {
       username,
@@ -243,7 +243,7 @@ router.post("/update-user", authenticateJWT, async (req, res) => {
 });
 
 // POST /api/user/deactivate-user
-router.post("/deactivate-user", authenticateJWT, async (req, res) => {
+router.post("/deactivate-user",  async (req, res) => {
   try {
     const { username } = req.body;
     if (!username) {

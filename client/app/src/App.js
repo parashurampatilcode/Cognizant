@@ -371,10 +371,11 @@ function App() {
         >
           {[
             { label: "PDP & VCDP", value: "pdpvcdp" },
+            // Uncomment the following lines - Need to uncomment once they are implemented
             //{ label: "VCDP", value: "vcdp" },
-            { label: "Lateral Hiring", value: "lateralHiring" },
-            { label: "Rotation", value: "rotation" },
-            { label: "NBL", value: "nbl" },
+            //{ label: "Lateral Hiring", value: "lateralHiring" },
+            //{ label: "Rotation", value: "rotation" },
+            //{ label: "NBL", value: "nbl" },
           ].map((item) => (
             <StyledMenuItem
               key={item.value}

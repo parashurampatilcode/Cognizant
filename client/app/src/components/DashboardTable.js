@@ -1,4 +1,3 @@
-// c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\components\DashboardTable.js
 import React, { useState, useRef, useMemo } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { lighten, styled } from "@mui/material/styles";
@@ -23,7 +22,8 @@ import * as htmlToImage from "html-to-image";
 import axios from "axios";
 
 const primaryColor = "#005EB8"; // Cognizant's primary blue
-const secondaryColor = "#E6F0FA"; // Light blue
+const lighterBlue = "#B3D6F5"; // 2 shades lighter
+const lightestBlue = "#E6F0FA"; // 3 shades lighter
 const lightGrey = "#F5F5F5";
 const darkGrey = "#D3D3D3";
 
@@ -32,17 +32,28 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-columnHeaderTitleContainer": {
       "& .MuiDataGrid-columnHeaderTitle": {
         fontWeight: "bold !important",
+        whiteSpace: "normal", // Enable word wrapping
+        overflow: "hidden",
+        textOverflow: "ellipsis",
       },
     },
-    backgroundColor: primaryColor, // Changed to primary blue
-    color: "#FFFFFF !important", // White text for better contrast
+    backgroundColor: lightestBlue, // Default: lightest blue
+    color: "#000 !important",
     fontSize: "0.95rem !important",
     textTransform: "none",
     borderBottom: `2px solid ${primaryColor}`,
   },
+  "& .header-primary": {
+    backgroundColor: primaryColor + " !important",
+    color: "#fff !important",
+  },
+  "& .header-lighter": {
+    backgroundColor: lighterBlue + " !important",
+    color: "#000 !important",
+  },
   "& .last-row": {
     fontWeight: "bold",
-    backgroundColor: lighten(primaryColor, 0.85), // Lighter shade of blue for last row
+    backgroundColor: lighten(primaryColor, 0.85),
     color: "#000",
   },
   "& .first-column": {
@@ -50,11 +61,11 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .last-column": {
     fontWeight: "bold",
-    backgroundColor: lighten(primaryColor, 0.85), // Lighter shade of blue for last column
+    backgroundColor: lighten(primaryColor, 0.85),
   },
   "& .negative-value": {
     fontWeight: "bold",
-    backgroundColor: "#FF4D4D", // Brighter red
+    backgroundColor: "#FF4D4D",
     color: "#fff",
   },
   "& .high-pdp": {
@@ -95,22 +106,46 @@ const DashboardTable = ({ reportData, filterValues }) => {
   const tableRef = useRef(null);
   const popupTableRef = useRef(null);
 
+  const primaryHeaders = [
+    "Skill",
+    "Total Demand",
+    "Total Supply",
+    "Total External Supply",
+    "Gap"
+  ];
+  const lighterHeaders = [
+    "PDP",
+    "VCDP",
+    "Lateral Hiring CWR",
+    "Lateral Hiring FTE"
+  ];
+
   useMemo(() => {
     if (reportData && reportData.length > 0) {
-      const cols = Object.keys(reportData[0]).map((key, index) => ({
-        field: key,
-        headerName:
-          key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
-        minWidth: 150,
-        flex: 1,
-        renderCell: (params) =>
-          index === 0 ? (
-            <StyledClickableCell>{params.value}</StyledClickableCell>
-          ) : (
-            params.value
-          ),
-        cellClassName: (params) => getCellClassName(params, reportData, index),
-      }));
+      const cols = Object.keys(reportData[0]).map((key, index) => {
+        const header = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+        let headerClassName = "";
+        if (primaryHeaders.includes(header)) {
+          headerClassName = "header-primary";
+        } else if (lighterHeaders.includes(header)) {
+          headerClassName = "header-lighter";
+        }
+        // else default (lightest blue)
+        return {
+          field: key,
+          headerName: header,
+          minWidth: 150,
+          flex: 1,
+          renderCell: (params) =>
+            index === 0 ? (
+              <StyledClickableCell>{params.value}</StyledClickableCell>
+            ) : (
+              params.value
+            ),
+          cellClassName: (params) => getCellClassName(params, reportData, index),
+          headerClassName,
+        };
+      });
       setColumns(cols);
       setRows(reportData.map((row, index) => ({ ...row, id: index + 1 })));
     }
@@ -142,7 +177,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
         const data = response.data;
         const cols = Object.keys(data[0]).map((key, index) => ({
           field: key,
-          headerName: key.replace(/_/g, " ").toUpperCase(),
+          headerName:key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
           flex: 1,
           cellClassName: (params) => getCellClassName(params, data, index),
         }));
@@ -162,19 +197,19 @@ const DashboardTable = ({ reportData, filterValues }) => {
     const isFirstColumn = index === 0;
     const isLastColumn = index === Object.keys(reportData[0]).length - 1;
     const isMiddleColumn = [
-      "Pdp",
+      "PDP",
       "PDP (PA-)",
       "PDP (A+)",
-      "Vcdp",
+      "VCDP",
       "VCDP (PA-)",
-      "VCDP (A)",
+      "VCDP (A+)",
     ].includes(params.colDef.headerName);
     const numericValue = Number(params.value);
 
     const isNegative = isLastColumn && !isNaN(numericValue) && numericValue < 0;
 
     const highPdp =
-      !isLastRow && isMiddleColumn && !isNaN(numericValue) && numericValue > 10;
+      !isLastRow && isMiddleColumn && !isNaN(numericValue) && numericValue >= 10;
 
     return `${isLastRow ? "last-row" : ""}
             ${isFirstColumn ? "first-column" : ""}
@@ -313,7 +348,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
       <Dialog
         open={openPopup}
         onClose={() => setOpenPopup(false)}
-        maxWidth="lg"
+        maxWidth="x1"
         fullWidth
       >
         <DialogTitle

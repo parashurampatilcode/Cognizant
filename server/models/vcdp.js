@@ -149,7 +149,7 @@ const VCDP = {
           if (value === undefined || value === "" || value === null) {
             return null;
           }
-
+          /*
           // Handle dates with validation
           if (col.toLowerCase().includes("date")) {
             if (!value) return null;
@@ -197,7 +197,7 @@ const VCDP = {
           ) {
             return value ? parseInt(value, 10) : null;
           }
-
+          */
           return value;
         });
       });
@@ -216,7 +216,7 @@ const VCDP = {
         VALUES ${placeholders.join(", ")}
         RETURNING *
       `;
-      //console.log("Query:", query);
+      console.log("Query:", query);
       console.log("flatValues:", flatValues);
       const { rows } = await pool.query(query, flatValues);
       return Array.isArray(vcdpDataArray) ? rows : rows[0];
