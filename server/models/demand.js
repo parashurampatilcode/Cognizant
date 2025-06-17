@@ -1,9 +1,9 @@
 const pool = require("../config/db");
-
+const keyMapping = require("../config/DemamdColumnMapping.json");
 const Demand = {
   getAll: async () => {
     try {
-      const query = 'SELECT * FROM "so_data_1"';
+      const query = 'SELECT * FROM "so_stage"';
       const { rows } = await pool.query(query);
       return rows;
     } catch (error) {
@@ -22,6 +22,18 @@ const Demand = {
         throw new Error("No data provided for insertion.");
       }
 
+      // Filter out records where BU is "Internal"
+    const filteredDataArray = dataArray.filter((data) => {
+      // Handle both "BU" and "bu" keys, just in case
+      const buValue = data.BU || data.bu || data["Bu"] || data["bu"];
+      return String(buValue).trim().toLowerCase() !== "internal";
+    });
+
+    if (filteredDataArray.length === 0) {
+      // Nothing to insert
+      return [];
+    }
+
       const columnNames = [
         "so_line_status",
         "unique_id",
@@ -33,7 +45,7 @@ const Demand = {
         "off_on",
         "geography",
         "so_grade",
-        "tmratecard",
+        "t_m_ratecard", // changed
         "job_code",
         "flagged_for_recruitment",
         "when_flagged_for_recruitment",
@@ -68,15 +80,15 @@ const Demand = {
         "supply_source",
         "rotation_so",
         "supply_account",
-        "identified_assoc_idexternal_candidate_id",
+        "identified_assoc_id_external_candidate_id", // changed
         "identified_assoc_name",
-        "grade_1",
+      // "grade_1",
         "eff_month",
         "joining_allocation_date",
         "allocation_week",
-        "included_in_forecast_yn",
-        "cross_skill_required_yesno",
-        "remarksdetails",
+        "included_in_forecast", // changed
+        "cross_skill_required_yes_no", //changed
+        "remarks_details",
         "cluster_description",
         "owning_organization",
         "pool_id",
@@ -117,7 +129,7 @@ const Demand = {
         "country",
         "preferred_location_1",
         "preferred_location_2",
-        "fulfilmentcancellation_month",
+        "fulfilment_cancellation_month",
         "week_name",
         "requirement_end_date",
         "so_billability",
@@ -218,28 +230,40 @@ const Demand = {
         "rev_geo",
         "rev_grade",
         "short_fuse_demands",
-        "ageing_1",
+        //"ageing_1",
         "grouping",
         "top_accounts",
         "interview_status",
         "demand_type_1",
-        "created_date",
-        "created_by",
-        "modified_date",
-        "modified_by",
-        "is_active", // Added is_active
+       // "created_date",
+        //"created_by",
+       // "modified_date",
+       // "modified_by",
+       // "is_active", // Added is_active
+       "edl_id",
+       "edl_name"
       ];
 
       const allValues = dataArray.map((data, rowIndex) => {
         const normalizedData = Object.keys(data).reduce((acc, key) => {
+          //console.log("key: " + key + " value: " + data[key]);
+          // const normalizedKey = key
+          //   .trim() // Remove leading/trailing spaces
+          //   .replace(/\s+/g, " ") // Replace multiple spaces with single space
+          //   .replace(/[^a-zA-Z0-9\s]/g, "_") // Replace special chars with underscore
+          //   .replace(/\s/g, "_") // Replace remaining spaces with underscore
+          //   .replace(/_+/g, "_") // Replace multiple underscores with single underscore
+          //   .toLowerCase(); // Convert to lowercase
+          // // acc[normalizedKey] = data[key];
+         
+          // // Map normalizedKey to original key using the mapping file
           const normalizedKey = key
-            .trim() // Remove leading/trailing spaces
-            .replace(/\s+/g, " ") // Replace multiple spaces with single space
-            .replace(/[^a-zA-Z0-9\s]/g, "_") // Replace special chars with underscore
-            .replace(/\s/g, "_") // Replace remaining spaces with underscore
-            .replace(/_+/g, "_") // Replace multiple underscores with single underscore
-            .toLowerCase(); // Convert to lowercase
-          acc[normalizedKey] = data[key];
+             .trim() // Remove leading/trailing spaces
+          const dbColumnNameFromMapping = keyMapping[normalizedKey];
+          acc[dbColumnNameFromMapping] = data[key];
+          
+          //console.log("Normalized key: " + normalizedKey + " value: " + data[key]);
+          
           return acc;
         }, {});
 
@@ -250,13 +274,12 @@ const Demand = {
           if (value === undefined || value === "" || value === null) {
             return null;
           }
-
+          /*
           // Handle dates
           if (
-            col.toLowerCase().includes("date") ||
-            //col.toLowerCase().includes("_on") ||
-            col === "oe_approver_date" ||
-            col === "tsc_approver_date"
+            col.toLowerCase().includes("date") &&
+            col !== "candidate_name" && // Exclude candidate_name from date handling
+            (col === "oe_approver_date" || col === "tsc_approver_date")
           ) {
             if (!value) return null;
             const date = new Date(value);
@@ -301,6 +324,7 @@ const Demand = {
           ) {
             return value ? parseFloat(value) : null;
           }
+            */
           if (col === "is_active") {
             return true; // Set is_active to true
           }
@@ -319,7 +343,7 @@ const Demand = {
       });
 
       const query = `
-        INSERT INTO "so_data_1" (${columnNames
+        INSERT INTO "so_stage" (${columnNames
           .map((col) => `"${col}"`)
           .join(", ")})
         VALUES ${placeholders.join(", ")}
@@ -327,13 +351,75 @@ const Demand = {
       `;
 
       const { rows } = await pool.query(query, flatValues);
+
       return Array.isArray(demandDataArray) ? rows : rows[0];
     } catch (error) {
       console.error("Error creating Demand record(s):", error);
       console.error("Error details:", error); // Added this line
       throw error;
+    } finally {
+      // Call the stored procedure for DSM Logic (Insert,Update and Archive) after inserting data
+      //Not required to call
+      /*try {
+        await pool.query("CALL public.demand_update()");
+      } catch (error) {
+        console.error(
+          "Error calling stored procedure: public.demand_update",
+          error
+        );
+      }*/
     }
   },
+
+  async getDropdownValuesByType(type) {
+    try {
+      const query = `SELECT * FROM get_demand_dropdown_by_type($1)`;
+      const { rows } = await pool.query(query, [type]);
+      return rows;
+    } catch (error) {
+      console.error(`Error fetching dropdown values for type ${type}:`, error);
+      throw error;
+    }
+  },
+  
+  async getDropdownValuesByTypeAndSubType(type,subType) {
+    try {
+      const query = `SELECT * FROM get_demand_dropdown_by_type_and_sub_type($1,$2)`;
+      const { rows } = await pool.query(query, [type, subType]);
+      return rows;
+    } catch (error) {
+      console.error(`Error fetching dropdown values for type and subtype ${type} and ${subType}:`, error);
+      throw error;
+    }
+  },
+  
 };
+
+
+
+const express = require("express");
+const app = express();
+
+app.get("/demandselect/report", async (req, res) => {
+  const { parentCustomer, buDesc, pdlName, offOn } = req.query;
+
+  try {
+    const query = `
+      SELECT * FROM public.demandselectnewpp($1, $2, $3, $4)
+    `;
+    const queryParams = [
+      parentCustomer === "null" ? null : parentCustomer,
+      buDesc === "null" ? null : buDesc,
+      pdlName === "null" ? null : pdlName,
+      offOn === "null" ? null : offOn,
+    ];
+
+    const results = await pool.query(query, queryParams);
+    res.json(results.rows);
+  } catch (error) {
+    console.error("Error fetching report data:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 module.exports = Demand;

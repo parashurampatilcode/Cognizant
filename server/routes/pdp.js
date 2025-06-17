@@ -3,7 +3,7 @@ const router = express.Router();
 const PDP = require("../models/pdp");
 const multer = require("multer");
 const xlsx = require("xlsx");
-
+const pool = require("../config/db");
 // Multer configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -121,10 +121,108 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
       });
     }
 
+    //Call the function to load data from stage to main table
+    try {
+      await pool.query("select * from  public.transform_pdp_stage_to_main()");
+      console.log("Stored procedure called successfully.");
+    } catch (error) {
+      console.error("Error calling stored procedure:", error);
+      return res.status(500).json({ error: "Error calling stored procedure" });
+    }
+
     res.json({ message: "File processed and data inserted successfully." });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+//Get EI PDP A+ data
+
+router.get("/getEIAPlusPDPData", async (req, res) => {
+  try {
+     const { region,  offOn } = req.query;
+     // Validate required parameters
+     if ( !region || !offOn  ) {
+       return res.status(400).json({ error: "Missing required parameters-" });
+     }
+    console.log("region",region);
+    const query = "SELECT * FROM get_ei_a_plus_pdp_data($1, $2)";
+    const queryParams = [region, offOn];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Get EI PDP P* data
+
+router.get("/getEIPStarPDPData", async (req, res) => {
+  try {
+     const { region,  offOn } = req.query;
+     // Validate required parameters
+     if ( !region || !offOn  ) {
+       return res.status(400).json({ error: "Missing required parameters-" });
+     }
+    console.log("region",region);
+    const query = "SELECT * FROM get_ei_p_star_pdp_data($1, $2)";
+    const queryParams = [region, offOn];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Get DPO PDP A+ data
+
+router.get("/getDPOAPlusPDPData", async (req, res) => {
+  try {
+     const { region,  offOn } = req.query;
+     // Validate required parameters
+     if ( !region || !offOn  ) {
+       return res.status(400).json({ error: "Missing required parameters-" });
+     }
+    console.log("region",region);
+    const query = "SELECT * FROM get_dpo_a_plus_pdp_data($1, $2)";
+    const queryParams = [region, offOn];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//Get DPO PDP P* data
+
+router.get("/getDPOPStarPDPData", async (req, res) => {
+  try {
+     const { region,  offOn } = req.query;
+     // Validate required parameters
+     if ( !region || !offOn  ) {
+       return res.status(400).json({ error: "Missing required parameters-" });
+     }
+    console.log("region",region);
+    const query = "SELECT * FROM get_dpo_p_star_pdp_data($1, $2)";
+    const queryParams = [region, offOn];
+
+    const result = await pool.query(query, queryParams);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error executing query:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

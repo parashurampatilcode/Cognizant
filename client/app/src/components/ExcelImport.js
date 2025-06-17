@@ -1,6 +1,7 @@
 // c:\Users\Parashuram\Projects\ei-demand-supply-tool\client\app\src\components\ExcelImport.js
 import React, { useState } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx";
 import {
   Box,
   Typography,
@@ -105,12 +106,64 @@ function ExcelImport() {
       } finally {
         setLoading(false);
       }
+    } else if (selectedType === "Unique Allocation Report") {
+      setLoading(true);
+      setError(null);
+      setSuccessMessage(null);
+      try {
+        // Read Excel file and extract only required columns
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        // Only keep required columns
+        const filteredData = jsonData
+          .map((row) => ({
+            assoId:
+              row["Asso Id"] || row["AssoId"] || row["Associate Id"] || "",
+            assoName: row["Asso Name"] || row["Associate Name"] || "",
+            grade: row["Grade"] || "",
+          }))
+          .filter((row) => row.assoId && row.assoName && row.grade);
+        if (filteredData.length === 0) {
+          setUploadedData({ columns: [], rows: [] });
+          setSuccessMessage("No valid data found in file.");
+          setLoading(false);
+          return;
+        }
+        // Send to backend
+        const response = await axios.post(
+          "http://localhost:5000/unique-allocation/uploadAndProcess",
+          { records: filteredData }
+        );
+        if (response.data.message) {
+          setSuccessMessage(response.data.message);
+        }
+        setUploadedData({
+          columns: [
+            { field: "assoId", headerName: "Asso Id", width: 150 },
+            { field: "assoName", headerName: "Asso Name", width: 200 },
+            { field: "grade", headerName: "Grade", width: 100 },
+          ],
+          rows: filteredData,
+        });
+      } catch (error) {
+        setError(
+          "Error uploading file. Please check the file format and try again."
+        );
+        console.error("Error uploading unique allocation report:", error);
+      } finally {
+        setLoading(false);
+      }
     } else {
-      // TODO: Handle other file types
       setUploadedData(null);
       setError("This file type is not yet supported.");
     }
   };
+
+  const getRowId = (row) =>
+    row.assoId || row.import_id || row.pdp_main_id || row.vcdp_main_id; // Use assoId as the ID
 
   return (
     <Box sx={{ padding: 3 }}>
@@ -135,6 +188,11 @@ function ExcelImport() {
             label="Rotation List"
           />
           <FormControlLabel value="NBL" control={<Radio />} label="NBL" />
+          <FormControlLabel
+            value="Unique Allocation Report"
+            control={<Radio />}
+            label="Unique Allocation Report"
+          />
         </RadioGroup>
       </FormControl>
 
@@ -154,7 +212,11 @@ function ExcelImport() {
 
       {uploadedData && uploadedData.rows.length > 0 && (
         <Box sx={{ height: 400, width: "100%" }}>
-          <DataTable rows={uploadedData.rows} columns={uploadedData.columns} />
+          <DataTable
+            rows={uploadedData.rows}
+            columns={uploadedData.columns}
+            getRowId={getRowId}
+          />
         </Box>
       )}
       {uploadedData && uploadedData.rows.length === 0 && (

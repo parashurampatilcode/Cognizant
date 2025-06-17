@@ -9,8 +9,15 @@ import {
   Grid,
   Fade,
   useTheme,
+  Avatar,
+  Menu as MuiMenu,
+  MenuItem as MuiMenuItem,
+  IconButton,
+  Divider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { jwtDecode } from "jwt-decode";
 import CognizantLogo from "./cognizant-logo.svg";
 import Dashboard from "./pages/Dashboard";
 import DemandView from "./pages/DemandView";
@@ -20,6 +27,11 @@ import Admin from "./pages/Admin";
 import Reports from "./pages/Reports";
 import Maintenance from "./pages/Maintenance";
 import ExcelImport from "./components/ExcelImport";
+import PDPVCDP from "./pages/PDPVCDP";
+import AddUserForm from "./components/AddUserForm";
+import LoginPage from "./components/LoginPage";
+import ChangePasswordPage from "./components/ChangePasswordPage";
+import ManageUsersPage from "./components/ManageUsersPage";
 
 const Offset = styled("div")(({ theme }) => theme.mixins.toolbar);
 
@@ -119,8 +131,25 @@ function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [activeMenu, setActiveMenu] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return Boolean(localStorage.getItem("token"));
+  });
+  const [profileMenuAnchor, setProfileMenuAnchor] = useState(null);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const menuTimeoutRef = useRef(null);
   const theme = useTheme();
+
+  // Extract user info from JWT
+  let username = "";
+  let role = "";
+  try {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const decoded = jwtDecode(token);
+      username = decoded.username || "";
+      role = decoded.role || "";
+    }
+  } catch (e) {}
 
   const handleMenuOpen = useCallback(
     (element, menuKey) => {
@@ -151,7 +180,37 @@ function App() {
     setAnchorEl(null);
   }, []);
 
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleProfileMenuOpen = (event) => {
+    setProfileMenuAnchor(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileMenuAnchor(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.reload();
+  };
+
+  const handleChangePasswordClick = () => {
+    setShowChangePassword(true);
+    handleProfileMenuClose();
+  };
+
   const renderPage = () => {
+    if (showChangePassword) {
+      return (
+        <ChangePasswordPage
+          username={username}
+          onClose={() => setShowChangePassword(false)}
+        />
+      );
+    }
     switch (activePage) {
       case "excelImport":
         return <ExcelImport />;
@@ -159,7 +218,8 @@ function App() {
         return <Dashboard />;
       case "detailedView":
         return <DemandView />;
-      case "pdp":
+      case "pdpvcdp":
+        return <PDPVCDP />;
       case "vcdp":
       case "lateralHiring":
       case "rotation":
@@ -169,6 +229,10 @@ function App() {
         return <DemandSupplyMatching />;
       case "admin":
         return <Admin />;
+      case "addUser":
+        return <AddUserForm />;
+      case "manageUsers":
+        return <ManageUsersPage />;
       case "reports":
         return <Reports />;
       case "maintenance":
@@ -185,6 +249,10 @@ function App() {
       }
     };
   }, []);
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -211,17 +279,48 @@ function App() {
               alt="Cognizant Logo"
               style={{ height: "30px", marginRight: "16px" }}
             />
-            <Typography
-              variant="h5"
-              component="div"
-              sx={{
-                width: "100%",
-                textAlign: "center",
-                marginLeft: -28,
-              }}
-            >
-              EI Demand Supply Management
-            </Typography>
+            <Box sx={{ flex: 1, textAlign: "center", marginLeft: -28 }}>
+              <Typography variant="h5" component="div">
+                EI Demand Supply Management
+              </Typography>
+            </Box>
+            {/* User Info and Profile Icon */}
+            {username && (
+              <Box
+                sx={{ display: "flex", alignItems: "center", gap: 1, mr: 2 }}
+              >
+                <Box sx={{ textAlign: "right", mr: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    {username}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#e0e0e0" }}>
+                    {role}
+                  </Typography>
+                </Box>
+                <IconButton
+                  color="inherit"
+                  onClick={handleProfileMenuOpen}
+                  size="large"
+                >
+                  <Avatar sx={{ bgcolor: "#1976d2" }}>
+                    <AccountCircleIcon />
+                  </Avatar>
+                </IconButton>
+                <MuiMenu
+                  anchorEl={profileMenuAnchor}
+                  open={Boolean(profileMenuAnchor)}
+                  onClose={handleProfileMenuClose}
+                  anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                  transformOrigin={{ vertical: "top", horizontal: "right" }}
+                >
+                  <MuiMenuItem onClick={handleChangePasswordClick}>
+                    Change Password
+                  </MuiMenuItem>
+                  <Divider />
+                  <MuiMenuItem onClick={handleLogout}>Logout</MuiMenuItem>
+                </MuiMenu>
+              </Box>
+            )}
           </Grid>
         </Grid>
       </header>
@@ -258,8 +357,8 @@ function App() {
         <MenuWrapper
           buttonText="Supply View"
           isActive={[
-            "pdp",
-            "vcdp",
+            "pdpvcdp",
+            //"vcdp",
             "lateralHiring",
             "rotation",
             "nbl",
@@ -271,8 +370,8 @@ function App() {
           onMenuClose={handleMenuClose}
         >
           {[
-            { label: "PDP", value: "pdp" },
-            { label: "VCDP", value: "vcdp" },
+            { label: "PDP & VCDP", value: "pdpvcdp" },
+            //{ label: "VCDP", value: "vcdp" },
             { label: "Lateral Hiring", value: "lateralHiring" },
             { label: "Rotation", value: "rotation" },
             { label: "NBL", value: "nbl" },
@@ -301,16 +400,31 @@ function App() {
         </MenuWrapper>
 
         <MenuButton
-          buttonText="Demand Supply Matching"
+          buttonText="Demand Supply Mapping"
           isActive={activePage === "matching"}
           onClick={() => handlePageChange("matching")}
         />
 
-        <MenuButton
+        <MenuWrapper
           buttonText="Admin"
-          isActive={activePage === "admin"}
-          onClick={() => handlePageChange("admin")}
-        />
+          isActive={
+            activePage === "admin" ||
+            activePage === "addUser" ||
+            activePage === "manageUsers"
+          }
+          menuKey="admin"
+          anchorEl={anchorEl}
+          activeMenu={activeMenu}
+          onMenuOpen={handleMenuOpen}
+          onMenuClose={handleMenuClose}
+        >
+          <StyledMenuItem onClick={() => handlePageChange("addUser")}>
+            Add New User
+          </StyledMenuItem>
+          <StyledMenuItem onClick={() => handlePageChange("manageUsers")}>
+            Manage Users
+          </StyledMenuItem>
+        </MenuWrapper>
 
         <MenuButton
           buttonText="Reports"
@@ -324,7 +438,7 @@ function App() {
           onClick={() => handlePageChange("maintenance")}
         />
       </Box>
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth={false} sx={{ padding: 0, margin: 0, marginTop: 4 }}>
         {renderPage()}
       </Container>
     </Box>

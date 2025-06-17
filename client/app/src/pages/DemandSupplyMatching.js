@@ -1,7 +1,27 @@
-// filepath: c:\Users\Parashuram\Projects\ei-demand-supply-tool-Parashuram-branch\Cognizant\client\app\src\pages\DemandSupplyMatching.js
-// DemandSupplyMatching.js
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Box, Typography, InputBase } from "@mui/material";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  Box,
+  Typography,
+  InputBase,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
 
 import {
@@ -9,15 +29,17 @@ import {
   GridToolbarContainer,
   GridActionsCellItem,
 } from "@mui/x-data-grid";
-import axios from "axios";
+import api from "../api";
 import {
   Delete as DeleteIcon,
   Edit as EditIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  History as HistoryIcon,
 } from "@mui/icons-material";
+import ExportIcon from "../components/ExportIcon"; // Adjust the path based on your project structure
 
-const primaryColor = "#005EB8"; // Cognizant's primary blue
+const primaryColor = "#005EB8";
 const darkGrey = "#D3D3D3";
 
 const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
@@ -25,6 +47,8 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     "& .MuiDataGrid-columnHeaderTitleContainer": {
       "& .MuiDataGrid-columnHeaderTitle": {
         fontWeight: "bold !important",
+        whiteSpace: "normal", // Allow wrapping
+        wordBreak: "break-word", // Break long words if needed
       },
     },
     backgroundColor: primaryColor,
@@ -43,9 +67,392 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     borderBottom: `1px solid ${darkGrey}`,
   },
   "& .MuiDataGrid-columnHeaders": {
-    whiteSpace: "nowrap",
+    whiteSpace: "normal", // Allow wrapping
   },
+  "& .editable-cell": {
+    backgroundColor: "#FFFDE7 !important", // Light yellow background for editable cells in view mode
+    "&:hover": {
+      backgroundColor: "#FFF9C4 !important",
+    },
+  },
+  "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell--editable": {
+    backgroundColor: "#FFF59D !important", // Dark yellow background for editable cells in edit mode
+    border: "1px solid #005EB8",
+  },
+  "& .MuiDataGrid-row.row-editing .MuiDataGrid-cell:not(.MuiDataGrid-cell--editable)":
+    {
+      backgroundColor: "#E0E0E0 !important",
+    },
 }));
+
+const DropdownEditCell = React.memo(
+  ({ field, value, id, api: gridApi, options, row }) => {
+    const [localOptions, setLocalOptions] = useState(options);
+    const [selectedValue, setSelectedValue] = useState(value);
+    
+    useEffect(() => {
+      setSelectedValue(value);
+    }, [value]);
+    useEffect(() => {
+      const fetchDependentDropdown = async () => {
+        
+         // Fulfilment Plan depends on Demand Type
+    if (field === "Fulfilment Plan" && row["Demand Type"]) {
+      try {
+        const response = await api.get("/demand/dropdownBySubType", {
+          params: { fieldName: "FULFILMENT_PLAN", subType: row["Demand Type"] },
+        });
+        if (Array.isArray(response.data)) {
+          const opts = response.data.map(item => ({
+            value: item.key_value,
+            label: item.description,
+          }));
+          setLocalOptions(opts);
+          // Always set the first value if the current value is not in the new options
+          if (opts.length > 0 && (!value || !opts.some(opt => opt.value === value))) {
+            setSelectedValue(opts[0].value);
+            gridApi.setEditCellValue({ id, field: "Fulfilment Plan", value: opts[0].value });
+          }
+        } else {
+          setLocalOptions([]);
+        }
+      } catch {
+        setLocalOptions([]);
+      }
+    }
+        
+        if (field === "Demand Category" && row["Demand Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_CATEGORY", subType: row["Demand Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Category", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+       
+        // Included In Forecast depends on Demand Type
+        if (field === "Included In Forecast" && row["Demand Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "INCLUDED_IN_FORECAST", subType: row["Demand Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Included In Forecast", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Demand Category depends on Project Billability Type
+        if (field === "Demand Category" && row["Project Billability Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_CATEGORY", subType: row["Project Billability Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Category", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Demand Status depends on Demand Type
+        else if (field === "Demand Status" && row["Demand Type"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_STATUS", subType: row["Demand Type"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Status", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Supply Source depends on Fulfilment Plan
+        else if (field === "Supply Source" && row["Fulfilment Plan"]) {
+          try {
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "SUPPLY_SOURCE", subType: row["Fulfilment Plan"] },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Supply Source", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+        // Default for other fields
+        else if (
+          field !== "Demand Status" &&
+          field !== "Supply Source" &&
+          field !== "Demand Category" &&
+          field !== "Included In Forecast" &&
+          field !== "Fulfilment Plan"
+        ) {
+          setLocalOptions(options);
+        }
+      };
+      fetchDependentDropdown();
+      // eslint-disable-next-line
+    }, [field,row["Project Billability Type"], row["Demand Type"], row["Fulfilment Plan"], options]);
+
+    const handleChange = async (event) => {
+      const newValue = event.target.value;
+      setSelectedValue(newValue);
+    
+      if (field === "Demand Type") {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+        gridApi.setEditCellValue({ id, field: "Demand Status", value: "" });
+        gridApi.setEditCellValue({ id, field: "Included In Forecast", value: "" });
+        gridApi.setEditCellValue({ id, field: "Demand Category", value: "" });
+        gridApi.setEditCellValue({ id, field: "Fulfilment Plan", value: "" }); // This triggers Fulfilment Plan cell to re-render
+      } else if (field === "Fulfilment Plan") {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+        gridApi.setEditCellValue({ id, field: "Supply Source", value: "" });
+      } else if (field === "Project Billability Type") {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+        gridApi.setEditCellValue({ id, field: "Demand Category", value: "" });
+      } else {
+        gridApi.setEditCellValue({ id, field, value: newValue });
+      }
+    };
+
+    return (
+      <Select
+        value={selectedValue || ""}
+        onChange={handleChange}
+        sx={{ width: "100%" }}
+      >
+        {localOptions.map(option => (
+          <MenuItem key={option.value} value={option.value}>
+            {option.label}
+          </MenuItem>
+        ))}
+      </Select>
+    );
+  }
+);
+
+
+function getWeekOfMonth(date) {
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
+  const dayOfMonth = date.getDate();
+  let weekNumber = Math.ceil((dayOfMonth + firstDayOfWeek) / 7);
+  return weekNumber;
+}
+
+const DateFieldEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [date, setDate] = useState(value ? new Date(value) : null);
+
+  const handleChange = (newDate) => {
+    setDate(newDate);
+    if (newDate) {
+      // Only update AllocationWeek if the field is JoiningAllocationDate
+      if (field === "Allocation Date") {
+        const weekNumber = getWeekOfMonth(newDate);
+        const monthName = newDate.toLocaleString("default", { month: "short" });
+        const allocationWeek = `${monthName}-Week ${weekNumber}`;
+        gridApi.setEditCellValue({
+          id,
+          field: "Allocation Week",
+          value: allocationWeek,
+        });
+
+        // Set Eff Month (format: YYYY-MM)
+        const monthNameEff = newDate.toLocaleString("default", { month: "short" });
+        const effMonth = `${monthNameEff}-${newDate.getFullYear()}`;
+        gridApi.setEditCellValue({
+          id,
+          field: "Eff Month",
+          value: effMonth,
+        });
+      }
+    } else if (field === "Allocation Date") {
+      // Only clear AllocationWeek if JoiningAllocationDate is cleared
+      gridApi.setEditCellValue({
+        id,
+        field: "Allocation Week",
+        value: "",
+      });
+      gridApi.setEditCellValue({
+        id,
+        field: "Eff Month",
+        value: "",
+      });
+    }
+
+    // Update the actual date field
+    gridApi.setEditCellValue({
+      id,
+      field,
+      value: newDate ? newDate.toISOString().split("T")[0] : null,
+    });
+  };
+
+  return (
+    <TextField
+      type="date"
+      value={date ? date.toISOString().split("T")[0] : ""}
+      onChange={(e) => {
+        const newDate = e.target.value ? new Date(e.target.value) : null;
+        handleChange(newDate);
+      }}
+      sx={{ width: "100%" }}
+    />
+  );
+});
+
+const EmployeeIdEditCell = React.memo(({ field, value, id, api: gridApi }) => {
+  const [inputValue, setInputValue] = useState(value || "");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+  };
+
+  const handleBlur = async () => {
+    // Always update the ID field, even if empty
+    gridApi.setEditCellValue({
+      id,
+      field,
+      value: inputValue,
+    });
+
+    if (inputValue) {
+      setIsLoading(true);
+      try {
+        // Fetch employee name and grade
+        const response = await api.get("/employees/getEmployeeById", {
+          params: { employeeId: inputValue },
+        });
+        console.log("Employee responses:", response.data);
+        if (response.data && response.data.employee_name) {
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified Assoc Name",
+            value: response.data.employee_name,
+          });
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: response.data.grade,
+          });
+        } else {
+          gridApi.setEditCellValue({
+            id,
+            field: "Identified Assoc Name",
+            value: "",
+          });
+          gridApi.setEditCellValue({
+            id,
+            field: "Grades",
+            value: "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching employee name:", error);
+        gridApi.setEditCellValue({
+          id,
+          field: "Identified Assoc Name",
+          value: "",
+        });
+        gridApi.setEditCellValue({
+          id,
+          field: "Grades",
+          value: "",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // If input is empty, clear related fields
+      gridApi.setEditCellValue({
+        id,
+        field: "Identified Assoc Name",
+        value: "",
+      });
+      gridApi.setEditCellValue({
+        id,
+        field: "Grades",
+        value: "",
+      });
+    }
+  };
+
+  return (
+    <TextField
+      value={inputValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder="Enter Employee ID"
+      sx={{ width: "100%" }}
+      disabled={isLoading}
+      InputProps={{
+        endAdornment: isLoading ? <CircularProgress size={20} /> : null,
+      }}
+    />
+  );
+});
 
 function DemandSupplyMatching() {
   const [data, setData] = useState([]);
@@ -54,133 +461,651 @@ function DemandSupplyMatching() {
   const gridRef = useRef(null);
   const [rowModesModel, setRowModesModel] = React.useState({});
 
+  const [parentCustomer, setParentCustomer] = useState("All");
+  const [buDesc, setBuDesc] = useState("All");
+  const [pdlName, setPdlName] = useState("All");
+  const [offOn, setOffOn] = useState("All");
+
+  const [parentCustomerOptions, setParentCustomerOptions] = useState([]);
+  const [buDescOptions, setBuDescOptions] = useState([]);
+  const [pdlNameOptions, setPdlNameOptions] = useState([]);
+  const [offOnOptions, setOffOnOptions] = useState([]);
+
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [selectedUnique, setSelectedUnique] = useState(null);
+  const [auditData, setAuditData] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
+
+  const [dropdownOptions, setDropdownOptions] = useState({});
+
+  const [validationOpen, setValidationOpen] = useState(false);
+  const [validationMsg, setValidationMsg] = useState("");
+  const lastEditRowId = useRef(null);
+  
+  const editableColumns = [
+    "Demand Type",
+    "Demand Status",
+    "Fulfilment Plan",
+    "Demand Category",
+    "Supply Source",
+    "Rotation So",
+    "Supply Account",
+    "Identified Asso Id Ext Candidate Id",
+    "Identified Assoc Name",
+    "Grades",
+    "Eff Month",
+    "Allocation Date",
+    "Allocation Week",
+    "Included In Forecast",
+    "Cross Skill Required",
+    "Remarks Details",
+  ];
+
+
+  const fieldToDropdownTypeMap = {
+    "Demand Category": "DEMAND_CATEGORY",
+    "Fulfilment Plan": "FULFILMENT_PLAN",
+    "Supply Source": "SUPPLY_SOURCE",
+    "Demand Type": "DEMAND_TYPE",
+    "Demand Status": "DEMAND_STATUS",
+    Grades: "GRADE",
+    "Included In Forecast": "YES_NO",
+    "Cross Skill Required": "YES_NO",
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchAllDropdownOptions = async () => {
+      const options = {};
+      for (const field in fieldToDropdownTypeMap) {
+        const dropdownType = fieldToDropdownTypeMap[field];
+        try {
+          const response = await api.get(`/demand/dropdown`, {
+            params: { fieldName: dropdownType },
+          });
+          options[field] = response.data.map((item) => ({
+            value: item.key_value,
+            label: item.description,
+          }));
+        } catch (error) {
+          console.error(`Error fetching dropdown options for ${field}:`, error);
+          options[field] = []; // Ensure there's always a value
+        }
+      }
+      if (isMounted) {
+        setDropdownOptions(options);
+      }
+    };
+
+    const fetchDropdownData = async () => {
+      try {
+        const [
+          parentCustomerResponse,
+          buDescResponse,
+          pdlNameResponse,
+          offOnResponse,
+        ] = await Promise.all([
+          api.get("/demandselect/parentCustomers"),
+          api.get("/demandselect/businessUnitDescs"),
+          api.get("/demandselect/pdlNames"),
+          api.get("/demandselect/offOns"),
+        ]);
+
+        if (isMounted) {
+          setParentCustomerOptions(["All", ...parentCustomerResponse.data]);
+          setBuDescOptions(["All", ...buDescResponse.data]);
+          setPdlNameOptions(["All", ...pdlNameResponse.data]);
+          setOffOnOptions(["All", ...offOnResponse.data]);
+        }
+      } catch (error) {
+        console.error("Error fetching dropdown data:", error);
+      }
+    };
+
+    fetchAllDropdownOptions();
+    fetchDropdownData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/demandselect");
-        setData(response.data);
+        const response = await api.get("/demandselect");
+        let fetchedData = response.data;
+
+        fetchedData = fetchedData.map((item) => {
+          if (item.JoiningAllocationDate) {
+            const joiningDate = new Date(item.JoiningAllocationDate);
+            const weekNumber = getWeekOfMonth(joiningDate);
+            const monthName = joiningDate.toLocaleString("default", {
+              month: "short",
+            });
+            item.AllocationWeek = `${monthName}-Week ${weekNumber}`;
+            item.JoiningAllocationDate =
+              item.JoiningAllocationDate.split("T")[0];
+          }
+          return item;
+        });
+        setData(fetchedData);
 
         if (response.data.length > 0) {
           let cols = Object.keys(response.data[0]).map((key) => ({
             field: key,
-            headerName: key.replace(/_/g, " ").toUpperCase(),
+            headerName: key,
             width: 150,
-            editable: true, // Make columns editable
           }));
+          
+        /*
+          // Move "Project Billability Type" before the first editable column
+        const pbIndex = cols.findIndex(col => col.field === "Project Billability Type");
+        const firstEditableIndex = cols.findIndex(col => editableColumns.includes(col.field));
+        if (pbIndex > -1 && firstEditableIndex > -1 && pbIndex !== firstEditableIndex - 1) {
+          const [pbCol] = cols.splice(pbIndex, 1);
+          cols.splice(firstEditableIndex, 0, pbCol);
+        }
 
-          // Add actions column
-          cols = [
-            ...cols,
-            {
-              field: "actions",
-              type: "actions",
-              headerName: "Actions",
-              width: 100,
-              cellClassName: "actions",
-              getActions: ({ id }) => {
-                const isInEditMode = rowModesModel[id]?.mode === "edit";
+     
+ 
+        // Move specified columns after editable columns
+        const moveAfterEditable = [
+          "Job Code",
+          "Flagged For Recruitment",
+          "When Flagged For Recruitment",
+          "Hiring Manager",
+          "Candidate Name",
+          "Date Of Joining",
+          "Tmp Remarks"
+        ];
+        // Find the last editable column index
+        const lastEditableIndex = Math.max(
+          ...editableColumns.map(colName => cols.findIndex(col => col.field === colName))
+        );
+        // Remove and collect the columns to move
+        const toMove = [];
+        moveAfterEditable.forEach(colName => {
+          const idx = cols.findIndex(col => col.field === colName);
+          if (idx > -1) {
+            toMove.push(cols[idx]);
+            cols.splice(idx, 1);
+          }
+        });
+        // Insert them after the last editable column
+        cols.splice(lastEditableIndex + 1, 0, ...toMove);
 
-                if (isInEditMode) {
-                  return [
-                    <GridActionsCellItem
-                      icon={<SaveIcon />}
-                      label="Save"
-                      onClick={handleSaveClick(id)}
-                      color="primary"
-                    />,
-                    <GridActionsCellItem
-                      icon={<CancelIcon />}
-                      label="Cancel"
-                      className="textPrimary"
-                      onClick={handleCancelClick(id)}
-                      color="inherit"
-                    />,
-                  ];
-                }
-
-                return [
-                  <GridActionsCellItem
-                    icon={<EditIcon />}
-                    label="Edit"
-                    className="textPrimary"
-                    onClick={handleEditClick(id)}
-                    color="inherit"
-                  />,
-                  <GridActionsCellItem
-                    icon={<DeleteIcon />}
-                    label="Delete"
-                    onClick={handleDeleteClick(id)}
-                    color="inherit"
-                  />,
-                ];
-              },
-            },
-          ];
+        
+        // Move Eff Month after Allocation Week
+        const effMonthIdx = cols.findIndex(col => col.field === "Eff Month");
+        const allocationWeekIdx = cols.findIndex(col => col.field === "Allocation Week");
+        if (effMonthIdx > -1 && allocationWeekIdx > -1 && effMonthIdx !== allocationWeekIdx + 1) {
+          const [effMonthCol] = cols.splice(effMonthIdx, 1);
+          cols.splice(allocationWeekIdx + 1, 0, effMonthCol);
+        } 
+          */
           setColumns(cols);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
       }
     };
-
     fetchData();
-  }, [rowModesModel]);
+  }, []);
 
   const handleEditClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: "edit" } });
+    
+    setRowModesModel((prevModel) => ({
+      ...prevModel,
+      [id]: { mode: "edit" },
+    }));
   };
 
-  const handleSaveClick = (id) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: "view" } });
-    // Here you would typically make an API call to save the changes to the server
-    console.log(`Saving row with id ${id}`);
-  };
+  const handleSaveClick = useCallback(
+    (id) => async () => {
+      
+      const updatedRow = data.find((row) => row.item_id === id);
+      const payload = {
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["So Line Status"],
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
+      };
+      try {
+        
+        await api.post("/demand/update", payload);
+        
+        setRowModesModel((prevModel) => ({
+          ...prevModel,
+          [id]: { mode: "view" },
+        }));
+        console.log(`Row with id ${id} saved successfully.`);
+      } catch (error) {
+        console.error("Error saving row:", error);
+      }
+    },
+    [data, editableColumns, pdlName, setRowModesModel]
+  );
 
-  const handleDeleteClick = (id) => () => {
-    const updatedData = data.filter((row) => row.ID !== id);
-    setData(updatedData);
-  };
-
-  const handleCancelClick = (id) => () => {
-    setRowModesModel({
-      ...rowModesModel,
-      [id]: { mode: "view", ignoreModifications: true },
-    });
-    const editedRow = data.find((row) => row.ID === id);
-    if (editedRow.isNew) {
-      setData(data.filter((row) => row.ID !== id));
+  const handleAuditClick = (id) => async () => {
+    const row = data.find((r) => r.item_id === id);
+    if (!row) return;
+    const uniqueId = row["So Id"];
+    setSelectedUnique(uniqueId);
+    setAuditOpen(true);
+    setAuditLoading(true);
+    try {
+      const response = await api.get("/demand/audit_history", {
+        params: { unique_id: uniqueId },
+      });
+      setAuditData(response.data);
+    } catch (error) {
+      console.error("Error fetching audit history:", error);
+    } finally {
+      setAuditLoading(false);
     }
   };
 
+  const handleAuditClose = () => {
+    setAuditOpen(false);
+    setAuditData([]);
+    setSelectedUnique(null);
+  };
+
+  const handleCancelClick = useCallback(
+    (id) => () => {
+      setRowModesModel((prevModel) => ({
+        ...prevModel,
+        [id]: { mode: "view", ignoreModifications: true },
+      }));
+
+      const editedRow = data.find((row) => row.item_id === id);
+      if (editedRow?.isNew) {
+        setData(data.filter((row) => row.item_id !== id));
+      }
+    },
+    [data, setRowModesModel]
+  );
+
   const filteredRows = useMemo(() => {
-    if (!searchText) return data;
-    const lowerSearchText = searchText.toLowerCase();
-    return data.filter((row) =>
-      columns.slice(0, -1).some(
-        (
-          column // Exclude the 'actions' column
-        ) => String(row[column.field]).toLowerCase().includes(lowerSearchText)
-      )
-    );
+    let filteredData = data;
+
+    if (searchText) {
+      const lowerSearchText = searchText.toLowerCase();
+      filteredData = filteredData.filter((row) =>
+        columns
+          .slice(0, -1)
+          .some((column) =>
+            String(row[column.field]).toLowerCase().includes(lowerSearchText)
+          )
+      );
+    }
+    return filteredData;
   }, [data, columns, searchText]);
 
-  const processRowUpdate = (newRow) => {
+  const processRowUpdate = async (newRow) => {
+    // Validation: If Fulfilment Plan is not "Open", check required fields
+    if (
+      newRow["Fulfilment Plan"] &&
+      (
+        newRow["Fulfilment Plan"].toLowerCase() === "identified genc" || 
+        newRow["Fulfilment Plan"].toLowerCase() === "identified fte" || 
+        newRow["Fulfilment Plan"].toLowerCase() === "cwr conversion" ||
+        (newRow["Fulfilment Plan"].toLowerCase() === "identified hiring in progress" && newRow["Off Onsite"].toLowerCase() === "offshore")
+      ) &&
+      (
+        !newRow["Identified Asso Id Ext Candidate Id"] ||
+        !newRow["Identified Assoc Name"]
+      )
+    ) {
+      setValidationMsg(
+        "Identified Asso Id Ext Candidate Id and Identified Assoc Name are mandatory for selected Fulfilment Plan"
+      );
+      setValidationOpen(true);
+      lastEditRowId.current = newRow.item_id; // <-- Store the id
+      throw new Error("Validation failed");
+    }
+    else if (
+      newRow["Fulfilment Plan"] &&
+      (
+        newRow["Fulfilment Plan"].toLowerCase() === "identified hiring in progress" && newRow["Off Onsite"].toLowerCase() === "onsite"
+      ) &&
+      (
+        !newRow["Identified Assoc Name"]
+      )
+    ) {
+      setValidationMsg(
+        "Identified Assoc Name is mandatory for selected Fulfilment Plan"
+      );
+      setValidationOpen(true);
+      lastEditRowId.current = newRow.item_id; // <-- Store the id
+      throw new Error("Validation failed");
+    }
+
+     // --- NEW VALIDATION FOR SUPPLY SOURCE ---
+  if (
+    newRow["Supply Source"] &&
+    (
+      newRow["Supply Source"] === "Rotation w backfill" ||
+      newRow["Supply Source"] === "Rotation wo backfill"
+    ) &&
+    (!newRow["Rotation So"] || newRow["Rotation So"].toString().trim() === "")
+  ) {
+    setValidationMsg(
+      "Rotation So is mandatory when Supply Source is 'Rotation W backfill' or 'Rotation wo backfill'."
+    );
+    setValidationOpen(true);
+    lastEditRowId.current = newRow.item_id;
+    throw new Error("Validation failed");
+  }
+    
     const updatedRow = { ...newRow, isNew: false };
-    setData(data.map((row) => (row.ID === newRow.ID ? updatedRow : row)));
+    try {
+      const payload = {
+        SoId: updatedRow["So Id"],
+        SOLineStatus: updatedRow["So Line Status" ],
+        ...editableColumns.reduce((acc, col) => {
+          acc[col] = updatedRow[col];
+          return acc;
+        }, {}),
+      };
+      await api.post("/demand/update", payload);
+      
+        
+      const token = localStorage.getItem("token");
+      console.log("Token:", token);
+      await api.post("/demand/audit_insert", payload,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log(`Row with id ${updatedRow.item_id} saved successfully.`);
+
+      setData((prevData) =>
+        prevData.map((row) => {
+          if (row.item_id === updatedRow.item_id) {
+            // Find the old row to compare JoiningAllocationDate
+            const oldRow = prevData.find(
+              (r) => r.item_id === updatedRow.item_id
+            );
+            // Update AllocationWeek only if JoiningAllocationDate has changed
+            if (
+              updatedRow.JoiningAllocationDate &&
+              oldRow.JoiningAllocationDate !== updatedRow.JoiningAllocationDate
+            ) {
+              const joiningDate = new Date(updatedRow.JoiningAllocationDate);
+              const weekNumber = getWeekOfMonth(joiningDate);
+              const monthName = joiningDate.toLocaleString("default", {
+                month: "short",
+              });
+              updatedRow.AllocationWeek = `${monthName}-Week ${weekNumber}`;
+              updatedRow.JoiningAllocationDate = joiningDate
+                .toISOString()
+                .split("T")[0];
+            }
+            
+            return updatedRow;
+          }
+          return row;
+        })
+      );
+      lastEditRowId.current = null;
+    } catch (error) {
+      console.error("Error saving row:", error);
+      throw error;
+    }
     return updatedRow;
   };
 
+  const handleRowEditStart = (params, event) => {
+    event.defaultMuiPrevented = true;
+  };
+
   const handleRowEditStop = (params, event) => {
-    if (params.reason === "rowFocusOut") {
-      event.defaultMuiPrevented = true;
+    event.defaultMuiPrevented = true;
+  };
+
+  const getRowClassName = (params) => {
+    return rowModesModel[params.id]?.mode === "edit" ? "row-editing" : "";
+  };
+
+  const handleParentCustomerChange = (event) => {
+    setParentCustomer(event.target.value);
+  };
+
+  const handleBuDescChange = (event) => {
+    setBuDesc(event.target.value);
+  };
+
+  const handlePdlNameChange = (event) => {
+    setPdlName(event.target.value);
+  };
+
+  const handleOffOnChange = (event) => {
+    setOffOn(event.target.value);
+  };
+
+  const handleViewReport = async () => {
+    try {
+      const params = {
+        parentCustomer: parentCustomer === "All" ? "null" : parentCustomer,
+        buDesc: buDesc === "All" ? "null" : buDesc,
+        pdlName: pdlName === "All" ? "null" : pdlName,
+        offOn: offOn === "All" ? "null" : offOn,
+      };
+
+      const response = await api.get("/demandselect/report", { params });
+      setData(response.data);
+    } catch (error) {
+      console.error("Error fetching report data:", error);
     }
   };
+
+  const columnsWithActions = useMemo(
+    () => [
+      {
+        field: "actions",
+        type: "actions",
+        headerName: "Actions",
+        width: 120,
+        cellClassName: "actions",
+        getActions: ({ id }) => {
+          const isInEditMode = rowModesModel[id]?.mode === "edit";
+
+          if (isInEditMode) {
+            return [
+              <GridActionsCellItem
+                icon={<SaveIcon />}
+                label="Save"
+                onClick={handleSaveClick(id)}
+                color="primary"
+              />,
+              <GridActionsCellItem
+                icon={<CancelIcon />}
+                label="Cancel"
+                onClick={handleCancelClick(id)}
+                color="inherit"
+              />,
+            ];
+          }
+
+          return [
+            <GridActionsCellItem
+              icon={<EditIcon />}
+              label="Edit"
+              onClick={handleEditClick(id)}
+              color="inherit"
+            />,
+            <GridActionsCellItem
+              icon={<HistoryIcon />}
+              label="Audit History"
+              onClick={handleAuditClick(id)}
+              color="inherit"
+            />,
+          ];
+        },
+      },
+     ...columns.map((col) => ({
+  ...col,
+  editable: editableColumns.includes(col.field),
+        cellClassName: editableColumns.includes(col.field)
+          ? "editable-cell"
+          : null,
+  
+  renderEditCell:
+    col.field === "Identified Asso Id Ext Candidate Id"
+      ? (params) => (
+          <EmployeeIdEditCell
+            field={params.field}
+            value={params.value}
+            id={params.id}
+            api={params.api}
+          />
+        )
+      : fieldToDropdownTypeMap[col.field]
+      ? (params) => (
+          <DropdownEditCell
+            field={params.field}
+            value={params.value}
+            id={params.id}
+            api={params.api}
+            options={dropdownOptions[col.field] || []}
+            row={params.row}
+          />
+        )
+      : col.field === "Allocation Date"
+      ? (params) => (
+          <DateFieldEditCell
+            field={params.field}
+            value={params.value}
+            id={params.id}
+            api={params.api}
+          />
+        )
+      : undefined,
+})),
+    ],
+    [
+      columns,
+      rowModesModel,
+      data,
+      editableColumns,
+      handleSaveClick,
+      handleCancelClick,
+      dropdownOptions,
+    ]
+  );
 
   return (
     <Box sx={{ width: "100%" }}>
       <Typography variant="h4" sx={{ mb: 3 }}>
-        Demand Supply Matching
+        Demand Supply Mapping
       </Typography>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 3,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <FormControl size="small" sx={{ minWidth: 300 }}>
+          <Autocomplete
+            options={parentCustomerOptions}
+            value={parentCustomer}
+            onChange={(event, newValue) => setParentCustomer(newValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Parent Customer"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase())
+              )
+            }
+            isOptionEqualToValue={(option, value) => option === value}
+          />
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 300 }}>
+          <Autocomplete
+            options={buDescOptions}
+            value={buDesc}
+            onChange={(event, newValue) => setBuDesc(newValue)}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Business Unit"
+                variant="outlined"
+                size="small"
+              />
+            )}
+            filterOptions={(options, { inputValue }) =>
+              options.filter((option) =>
+                option.toLowerCase().includes(inputValue.toLowerCase())
+              )
+            }
+            isOptionEqualToValue={(option, value) => option === value}
+          />
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel id="pdl-name-label">PDL Name</InputLabel>
+          <Select
+            labelId="pdl-name-label"
+            id="pdl-name"
+            value={pdlName}
+            label="PDL Name"
+            onChange={handlePdlNameChange}
+          >
+            <MenuItem value="All">All</MenuItem>
+            {pdlNameOptions
+              .filter((option) => option !== "All")
+              .map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 150 }}>
+          <InputLabel id="off-on-label">Off/On</InputLabel>
+          <Select
+            labelId="off-on-label"
+            id="off-on"
+            value={offOn}
+            label="Off/On"
+            onChange={handleOffOnChange}
+          >
+            <MenuItem value="All">All</MenuItem>
+            {offOnOptions
+              .filter((option) => option !== "All")
+              .map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+      </Box>
+
+      <Button
+        variant="contained"
+        color="primary"
+        onClick={handleViewReport}
+        sx={{ mb: 2 }}
+      >
+        View Report
+      </Button>
+
       <InputBase
         type="text"
         placeholder="Global Search..."
@@ -199,33 +1124,154 @@ function DemandSupplyMatching() {
         }}
       />
       <div style={{ height: 600, width: "100%" }}>
+      <ExportIcon
+                exportRows={filteredRows}
+                exportColumns={columnsWithActions}
+                exportTableRef={gridRef}
+                reportName="DemandSupplyMapping_Report"
+              />
         <StyledDataGrid
           ref={gridRef}
           rows={filteredRows}
-          columns={columns}
-          pageSize={10}
-          rowsPerPageOptions={[10, 25, 50]}
-          disableVirtualization
+          columns={columnsWithActions}
+          // columns={columnsWithActions.map((col) => ({
+          //   ...col,
+          //   editable: editableColumns.includes(col.field),
+          // }))}
           components={{
             Toolbar: () => (
               <GridToolbarContainer
                 sx={{
-                  padding: 1,
                   backgroundColor: "#FFFFFF",
+                  padding: 1,
                   borderBottom: `1px solid #D3D3D3`,
                 }}
-              >
-                {/* Existing toolbar content if any */}
-              </GridToolbarContainer>
+              ></GridToolbarContainer>
             ),
           }}
-          getRowId={(row) => row.ID}
+          disableVirtualization
+          rowsPerPageOptions={[10, 25, 50]}
+          pageSize={10}
+          getRowId={(row) => row.item_id}
           editMode="row"
           rowModesModel={rowModesModel}
+          onRowEditStart={handleRowEditStart}
           onRowEditStop={handleRowEditStop}
           processRowUpdate={processRowUpdate}
+          onProcessRowUpdateError={(error, params) => {
+            // Use the lastEditRowId ref to ensure correct row
+            const id = lastEditRowId.current || params?.id;
+            if (id) {
+              setRowModesModel((prev) => ({
+                ...prev,
+                [id]: {
+                  mode: "edit",
+                  ignoreModifications: false,
+                },
+              }));
+              // Optionally, force a re-render to keep Save icon visible
+              setData((prevData) =>
+                prevData.map((row) =>
+                  row.item_id === id
+                    ? { ...row, _forceEdit: Date.now() }
+                    : row
+                )
+              );
+            }
+          }}
+          onCellEditCommit={(params) => {
+            console.log("Cell committed:", params.field, params.value);
+            setData((prevData) =>
+              prevData.map((row) =>
+                row.item_id === params.id
+                  ? { ...row, [params.field]: params.value }
+                  : row
+              )
+            );
+          }}
+          getRowClassName={getRowClassName}
+          sx={{
+            "& .row-editing": {
+              backgroundColor: "#FFF3E0",
+            },
+          }}
         />
       </div>
+
+      {/* Audit History Dialog */}
+      <Dialog
+        open={auditOpen}
+        onClose={handleAuditClose}
+        fullWidth
+        maxWidth="lg" // increased popup width
+      >
+        <DialogTitle>Audit History</DialogTitle>
+        <DialogContent>
+          <Typography variant="subtitle1">SO ID: {selectedUnique}</Typography>
+          {auditLoading ? (
+            <Typography>Loading...</Typography>
+          ) : (
+            <div style={{ height: 400, width: "100%", marginTop: 16 }}>
+              <StyledDataGrid // changed from DataGrid to StyledDataGrid
+                rows={auditData}
+                columns={[
+                  { field: "auditid", headerName: "Audit ID", width: 100 },
+                  { field: "so_id", headerName: "SO ID", width: 150 },
+                  { field: "status", headerName: "Status", width: 120 },
+                  { field: "demand_type", headerName: "Demand Type", width: 200 },
+                  { field: "demand_status", headerName: "Demand Status", width: 200 },
+                  { field: "fulfilment_plan", headerName: "Fulfilment Plan", width: 200 },
+                  { field: "demand_category", headerName: "Demand Category", width: 200 },
+                  { field: "supply_source", headerName: "Supply Source", width: 200 },
+                  { field: "cross_skill_required_yes_no", headerName: "Cross Skill Required", width: 200 },
+                  { field: "rotation_so", headerName: "Rotation So", width: 200 },
+                  { field: "supply_account", headerName: "Supply Account", width: 200 },
+                  { field: "identified_assoc_id_external_candidate_id", headerName: "Identified Asso Id Ext Candidate Id", width: 200 },
+                  { field: "identified_assoc_name", headerName: "Identified Assoc Name", width: 200 },
+                  { field: "grade", headerName: "Grade", width: 200 },
+                  { field: "joining_allocation_date", headerName: "Allocation Date", width: 200 },
+                  { field: "allocation_week", headerName: "Allocation Week", width: 200 },
+                  { field: "eff_month", headerName: "Eff Month", width: 200 },
+                  { field: "included_in_forecast", headerName: "Included In Forecast", width: 200 },
+                  { field: "remarks_details", headerName: "Remarks Details", width: 200 },
+                  {
+                    field: "modified_date",
+                    headerName: "Modified Date",
+                    width: 180,
+                  },
+                  {
+                    field: "modified_by",
+                    headerName: "Modified By",
+                    width: 150,
+                  },
+                  { field: "comments", headerName: "Comments", width: 200 },
+                ]}
+                pageSize={5}
+                rowsPerPageOptions={[5, 10]}
+                disableSelectionOnClick
+                getRowId={(row) => row.auditid}
+              />
+            </div>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleAuditClose} color="primary">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={validationOpen} onClose={() => setValidationOpen(false)}>
+        <DialogTitle>Validation Error</DialogTitle>
+        <DialogContent>
+          <Typography>{validationMsg}</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setValidationOpen(false)} color="primary">
+            OK
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
