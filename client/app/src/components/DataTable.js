@@ -37,6 +37,8 @@ function DataTable({
   getRowId,
   searchPlaceholder = "Global Search...",
   disableSearch = false,
+  height,
+  hideFooter = false,
 }) {
   const [searchText, setSearchText] = useState("");
   const gridRef = useRef(null);
@@ -53,7 +55,7 @@ function DataTable({
   }, [rows, columns, searchText, disableSearch]);
 
   return (
-    <div style={{ height: 600, width: "100%" }}>
+    <div style={{ height: height || 600, width: "100%" }}>
       {!disableSearch && (
         <Box
           sx={{
@@ -91,8 +93,8 @@ function DataTable({
         rows={filteredRows}
         getRowId={getRowId}
         columns={columns}
-        pageSize={10}
-        rowsPerPageOptions={[10, 25, 50]}
+        pageSize={7}
+        rowsPerPageOptions={hideFooter ? [] : [10, 25, 50]}
         disableVirtualization
         autoHeight={false}
         sx={{
@@ -105,6 +107,7 @@ function DataTable({
           },
         }}
         hideFooterSelectedRowCount
+        hideFooter={hideFooter}
       />
     </div>
   );

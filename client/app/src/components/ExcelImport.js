@@ -199,7 +199,7 @@ function ExcelImport() {
   return (
     <Box sx={{ padding: 3 }}>
       {/* File Import Details Table */}
-      <Box sx={{ marginBottom: 3 }}>
+      <Box sx={{ marginBottom: 3, width: 600 }}>
         <Typography variant="h5" sx={{ marginBottom: 1 }}>
           File Import Details
         </Typography>
@@ -213,12 +213,14 @@ function ExcelImport() {
               : "",
           }))}
           columns={[
-            { field: "fileName", headerName: "File Name", width: 200 },
-            { field: "uploadedBy", headerName: "Uploaded By", width: 200 },
+            { field: "fileName", headerName: "File Name", width: 220 },
+            { field: "uploadedBy", headerName: "Uploaded By", width: 180 },
             { field: "uploadedAt", headerName: "Uploaded At", width: 200 },
           ]}
           getRowId={(row) => row.id}
           disableSearch={true}
+          height={370} // 7 rows * 50px + header
+          hideFooter={true}
         />
       </Box>
 
