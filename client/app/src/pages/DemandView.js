@@ -2,7 +2,7 @@
 import React,  { useState } from "react";
 import { Typography, Box } from "@mui/material";
 import DashboardTable from "../components/DashboardTable";
-import FilterControls from "../components/FilterControls";
+import FilterControlsDemand from "../components/FilterControlsDemand";
 import DemandViewTable from "../components/DemandViewTable";
 
 function DemandView() {
@@ -32,7 +32,7 @@ function DemandView() {
         >
          <Typography variant="h4">Demand View - Detailed View-</Typography>;
         </Box>
-        <FilterControls onReportData={handleReportData} reportName = 'Demand' />
+        <FilterControlsDemand onReportData={handleReportData} reportName = 'Demand' />
         {skillCountsByMonthData && (
           <DemandViewTable reportData={skillCountsByMonthData} filterValues={filterValues} tableName = 'Skills' />
         )}
