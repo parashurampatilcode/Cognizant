@@ -12,7 +12,7 @@ router.get("/report", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const query = "SELECT * FROM demandsupplymainview($1, $2, $3)";
+    const query = "SELECT * FROM ds_demand_supply_main_view_v1($1, $2, $3)";
     const queryParams = [practice, market, offOn];
 
     const result = await pool.query(query, queryParams);

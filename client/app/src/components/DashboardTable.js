@@ -107,7 +107,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
   const popupTableRef = useRef(null);
 
   const primaryHeaders = [
-    "Skill",
+    "Skills",
     "Total Demand",
     "Total Supply",
     "Total External Supply",

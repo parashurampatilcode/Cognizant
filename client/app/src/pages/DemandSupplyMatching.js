@@ -121,29 +121,7 @@ const DropdownEditCell = React.memo(
       }
     }
         
-        if (field === "Demand Category" && row["Demand Type"]) {
-          try {
-            const response = await api.get("/demand/dropdownBySubType", {
-              params: { fieldName: "DEMAND_CATEGORY", subType: row["Demand Type"] },
-            });
-            if (Array.isArray(response.data)) {
-              const opts = response.data.map(item => ({
-                value: item.key_value,
-                label: item.description,
-              }));
-              setLocalOptions(opts);
-              // Set the first value if not already set
-              if (opts.length > 0 && (!value || value === "")) {
-                setSelectedValue(opts[0].value);
-                gridApi.setEditCellValue({ id, field: "Demand Category", value: opts[0].value });
-              }
-            } else {
-              setLocalOptions([]);
-            }
-          } catch {
-            setLocalOptions([]);
-          }
-        }
+        
        
         // Included In Forecast depends on Demand Type
         if (field === "Included In Forecast" && row["Demand Type"]) {
@@ -194,7 +172,7 @@ const DropdownEditCell = React.memo(
           }
         }
         // Demand Status depends on Demand Type
-        else if (field === "Demand Status" && row["Demand Type"]) {
+        if (field === "Demand Status" && row["Demand Type"]) {
           try {
             const response = await api.get("/demand/dropdownBySubType", {
               params: { fieldName: "DEMAND_STATUS", subType: row["Demand Type"] },
@@ -217,7 +195,7 @@ const DropdownEditCell = React.memo(
           }
         }
         // Supply Source depends on Fulfilment Plan
-        else if (field === "Supply Source" && row["Fulfilment Plan"]) {
+        if (field === "Supply Source" && row["Fulfilment Plan"]) {
           try {
             const response = await api.get("/demand/dropdownBySubType", {
               params: { fieldName: "SUPPLY_SOURCE", subType: row["Fulfilment Plan"] },
@@ -231,6 +209,32 @@ const DropdownEditCell = React.memo(
               if (opts.length > 0 && (!value || value === "")) {
                 setSelectedValue(opts[0].value);
                 gridApi.setEditCellValue({ id, field: "Supply Source", value: opts[0].value });
+              }
+            } else {
+              setLocalOptions([]);
+            }
+          } catch {
+            setLocalOptions([]);
+          }
+        }
+
+        if (field === "Demand Category" && row["Demand Type"]) {
+          try {
+            
+            const subType = row["Demand Type"] === "Conversion" || row["Demand Type"] === "LMT -Visa Purpose" ? row["Demand Type"] : row["Project Billability Type"];
+            const response = await api.get("/demand/dropdownBySubType", {
+              params: { fieldName: "DEMAND_CATEGORY", subType: subType },
+            });
+            if (Array.isArray(response.data)) {
+              const opts = response.data.map(item => ({
+                value: item.key_value,
+                label: item.description,
+              }));
+              setLocalOptions(opts);
+              // Set the first value if not already set
+              if (opts.length > 0 && (!value || value === "")) {
+                setSelectedValue(opts[0].value);
+                gridApi.setEditCellValue({ id, field: "Demand Category", value: opts[0].value });
               }
             } else {
               setLocalOptions([]);
@@ -797,6 +801,17 @@ function DemandSupplyMatching() {
     );
     setValidationOpen(true);
     lastEditRowId.current = newRow.item_id;
+    throw new Error("Validation failed");
+  }
+
+  // Validation: Allocation Date mandatory check
+  if (
+    (!newRow["Allocation Date"] || newRow["Allocation Date"].toString().trim() === "") &&
+    newRow["Demand Status"]?.toLowerCase() !== "to be cancelled"
+  ) {
+    setValidationMsg("Allocation Date is mandatory");
+    setValidationOpen(true);
+    lastEditRowId.current = newRow.item_id; // Store the row ID for reference
     throw new Error("Validation failed");
   }
     
