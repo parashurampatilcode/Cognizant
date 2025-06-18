@@ -16,7 +16,7 @@ router.get("/", async (req, res) => {
 router.get("/parentCustomers", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT parent_customer FROM ds_so_data_main WHERE parent_customer IS NOT NULL ORDER BY parent_customer ASC;";
+      "SELECT DISTINCT parent_customer FROM ds_so_data_main WHERE parent_customer IS NOT NULL  and is_so_main_active = true  ORDER BY parent_customer ASC;";
     const { rows } = await pool.query(query);
 
     res.json(rows.map((row) => row.parent_customer));
@@ -29,11 +29,11 @@ router.get("/parentCustomers", async (req, res) => {
 router.get("/businessUnitDescs", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT businessunit_desc FROM ds_so_data_main WHERE businessunit_desc IS NOT NULL ORDER BY businessunit_desc ASC";
+      "SELECT DISTINCT bu FROM ds_so_data_main WHERE bu IS NOT NULL  and is_so_main_active = true ORDER BY bu ASC";
       //it should be businessunit_desc, column missing in the table ds_so_data_main
     const { rows } = await pool.query(query);
 
-    res.json(rows.map((row) => row.businessunit_desc));
+    res.json(rows.map((row) => row.bu));
   } catch (error) {
     console.error("Error fetching business unit descriptions:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -43,7 +43,7 @@ router.get("/businessUnitDescs", async (req, res) => {
 router.get("/pdlNames", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT pdl_name FROM ds_so_data_main WHERE pdl_name IS NOT NULL ORDER BY pdl_name ASC";
+      "SELECT DISTINCT pdl_name FROM ds_so_data_main WHERE pdl_name IS NOT NULL  and is_so_main_active = true ORDER BY pdl_name ASC";
       //it should be pdl_name, column missing in the table ds_so_data_main
     const { rows } = await pool.query(query);
 
@@ -57,7 +57,7 @@ router.get("/pdlNames", async (req, res) => {
 router.get("/offOns", async (req, res) => {
   try {
     const query =
-      "SELECT DISTINCT off_on FROM ds_so_data_main WHERE off_on IS NOT NULL ORDER BY off_on ASC";
+      "SELECT DISTINCT off_on FROM ds_so_data_main WHERE off_on IS NOT NULL  and is_so_main_active = true ORDER BY off_on ASC";
     const { rows } = await pool.query(query);
 
     res.json(rows.map((row) => row.off_on));
@@ -66,6 +66,33 @@ router.get("/offOns", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+router.get("/market", async (req, res) => {
+  try {
+    const query =
+      "SELECT DISTINCT market FROM ds_so_data_main WHERE market IS NOT NULL and is_so_main_active = true ORDER BY market ASC";
+    const { rows } = await pool.query(query);
+
+    res.json(rows.map((row) => row.market));
+  } catch (error) {
+    console.error("Error fetching Market values:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/practice", async (req, res) => {
+  try {
+    const query =
+      "SELECT DISTINCT practice FROM ds_so_data_main WHERE practice IS NOT NULL and is_so_main_active = true ORDER BY practice ASC";
+    const { rows } = await pool.query(query);
+
+    res.json(rows.map((row) => row.practice));
+  } catch (error) {
+    console.error("Error fetching Practice values:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 
 router.get("/report", async (req, res) => {
   const { parentCustomer, buDesc, pdlName, offOn } = req.query;
