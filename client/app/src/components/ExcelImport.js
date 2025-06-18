@@ -198,88 +198,104 @@ function ExcelImport() {
 
   return (
     <Box sx={{ padding: 3 }}>
-      {/* File Import Details Table */}
-      <Box sx={{ marginBottom: 3, width: 600 }}>
-        <Typography variant="h5" sx={{ marginBottom: 1 }}>
-          File Import Details
-        </Typography>
-        <DataTable
-          rows={uploadLogs.map((log) => ({
-            id: log.out_id,
-            fileName: log.out_file_name,
-            uploadedBy: log.out_uploaded_by,
-            uploadedAt: log.out_upload_datetime
-              ? new Date(log.out_upload_datetime).toLocaleString()
-              : "",
-          }))}
-          columns={[
-            { field: "fileName", headerName: "File Name", width: 220 },
-            { field: "uploadedBy", headerName: "Uploaded By", width: 180 },
-            { field: "uploadedAt", headerName: "Uploaded At", width: 200 },
-          ]}
-          getRowId={(row) => row.id}
-          disableSearch={true}
-          height={370} // 7 rows * 50px + header
-          hideFooter={true}
-        />
-      </Box>
-
-      <Typography variant="h5" sx={{ marginBottom: 3 }}>
-        Excel Import
-      </Typography>
-      <FormControl component="fieldset" sx={{ marginBottom: 3 }}>
-        <FormLabel component="legend">Select Import Type</FormLabel>
-        <RadioGroup row value={selectedType} onChange={handleTypeChange}>
-          <FormControlLabel value="Demand" control={<Radio />} label="Demand" />
-          <FormControlLabel value="PDP" control={<Radio />} label="PDP" />
-          <FormControlLabel value="VCDP" control={<Radio />} label="VCDP" />
-          <FormControlLabel
-            value="Lateral Hiring"
-            control={<Radio />}
-            label="Lateral Hiring"
-          />
-          <FormControlLabel
-            value="Rotation List"
-            control={<Radio />}
-            label="Rotation List"
-          />
-          <FormControlLabel value="NBL" control={<Radio />} label="NBL" />
-          <FormControlLabel
-            value="Unique Allocation Report"
-            control={<Radio />}
-            label="Unique Allocation Report"
-          />
-        </RadioGroup>
-      </FormControl>
-
-      {error && (
-        <Alert severity="error" sx={{ marginBottom: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      {successMessage && (
-        <Alert severity="success" sx={{ marginBottom: 2 }}>
-          {successMessage}
-        </Alert>
-      )}
-
-      <UploadComponent onUpload={handleUpload} disabled={loading} />
-
-      {uploadedData && uploadedData.rows.length > 0 && (
-        <Box sx={{ height: 400, width: "100%" }}>
+      <Box sx={{ display: "flex", alignItems: "flex-start", mb: 4 }}>
+        {/* Left: Import controls */}
+        <Box sx={{ flex: "0 0 320px", mr: 4 }}>
+          <Typography variant="h5" sx={{ marginBottom: 3 }}>
+            Excel Import
+          </Typography>
+          <FormControl component="fieldset" sx={{ marginBottom: 3 }}>
+            <FormLabel component="legend">Select Import Type</FormLabel>
+            <RadioGroup
+              row
+              value={selectedType}
+              onChange={handleTypeChange}
+              sx={{ flexWrap: "nowrap" }}
+            >
+              <FormControlLabel
+                value="Demand"
+                control={<Radio />}
+                label="Demand"
+              />
+              <FormControlLabel value="PDP" control={<Radio />} label="PDP" />
+              <FormControlLabel value="VCDP" control={<Radio />} label="VCDP" />
+              <FormControlLabel
+                value="Lateral Hiring"
+                control={<Radio />}
+                label="Lateral Hiring"
+              />
+              <FormControlLabel
+                value="Rotation List"
+                control={<Radio />}
+                label="Rotation List"
+              />
+              <FormControlLabel value="NBL" control={<Radio />} label="NBL" />
+              <FormControlLabel
+                value="Unique Allocation Report"
+                control={<Radio />}
+                label="Unique Allocation Report"
+              />
+            </RadioGroup>
+          </FormControl>
+          {error && (
+            <Alert severity="error" sx={{ marginBottom: 2 }}>
+              {error}
+            </Alert>
+          )}
+          {successMessage && (
+            <Alert severity="success" sx={{ marginBottom: 2 }}>
+              {successMessage}
+            </Alert>
+          )}
+          <UploadComponent onUpload={handleUpload} disabled={loading} />
+        </Box>
+        {/* Right: Recent File Imports */}
+        <Box sx={{ width: 600, ml: "auto" }}>
+          <Typography variant="h5" sx={{ marginBottom: 1 }}>
+            Recent File Imports
+          </Typography>
           <DataTable
-            rows={uploadedData.rows}
-            columns={uploadedData.columns}
-            getRowId={getRowId}
+            rows={uploadLogs.map((log) => ({
+              id: log.out_id,
+              fileName: log.out_file_name,
+              uploadedBy: log.out_uploaded_by,
+              uploadedAt: log.out_upload_datetime
+                ? new Date(log.out_upload_datetime).toLocaleString()
+                : "",
+            }))}
+            columns={[
+              { field: "fileName", headerName: "File Name", width: 220 },
+              { field: "uploadedBy", headerName: "Uploaded By", width: 180 },
+              {
+                field: "uploadedAt",
+                headerName: "Upload Timestamp",
+                width: 200,
+              },
+            ]}
+            getRowId={(row) => row.id}
+            disableSearch={true}
+            height={370}
+            hideFooter={true}
           />
         </Box>
-      )}
-      {uploadedData && uploadedData.rows.length === 0 && (
-        <Alert severity="info" sx={{ marginBottom: 2 }}>
-          No data to display.
-        </Alert>
-      )}
+      </Box>
+      {/* Bottom: Global search and Excel Import Data Grid */}
+      <Box sx={{ width: "100%" }}>
+        {uploadedData && uploadedData.rows.length > 0 && (
+          <Box sx={{ width: "100%" }}>
+            <DataTable
+              rows={uploadedData.rows}
+              columns={uploadedData.columns}
+              getRowId={getRowId}
+            />
+          </Box>
+        )}
+        {uploadedData && uploadedData.rows.length === 0 && (
+          <Alert severity="info" sx={{ marginBottom: 2 }}>
+            No data to display.
+          </Alert>
+        )}
+      </Box>
     </Box>
   );
 }
