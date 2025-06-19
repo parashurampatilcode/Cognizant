@@ -138,18 +138,18 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
 });
 
 
-//Get EI PDP A+ data
+///Get EI PDP A+ data
 
 router.get("/getEIAPlusPDPData", async (req, res) => {
   try {
-     const { region,  offOn } = req.query;
+     const {  offOn } = req.query;
      // Validate required parameters
-     if ( !region || !offOn  ) {
+     if ( !offOn  ) {
        return res.status(400).json({ error: "Missing required parameters-" });
      }
-    console.log("region",region);
-    const query = "SELECT * FROM get_ei_a_plus_pdp_data($1, $2)";
-    const queryParams = [region, offOn];
+    //console.log("offOn",offOn);
+    const query = "SELECT * FROM ds_supply_view_pdp($1, $2, $3)";
+    const queryParams = [offOn,"A+","EI"];
 
     const result = await pool.query(query, queryParams);
 
@@ -164,14 +164,14 @@ router.get("/getEIAPlusPDPData", async (req, res) => {
 
 router.get("/getEIPStarPDPData", async (req, res) => {
   try {
-     const { region,  offOn } = req.query;
+     const {  offOn } = req.query;
      // Validate required parameters
-     if ( !region || !offOn  ) {
+     if (  !offOn  ) {
        return res.status(400).json({ error: "Missing required parameters-" });
      }
-    console.log("region",region);
-    const query = "SELECT * FROM get_ei_p_star_pdp_data($1, $2)";
-    const queryParams = [region, offOn];
+    //console.log("offOn",offOn);
+    const query = "SELECT * FROM ds_supply_view_pdp($1, $2, $3)";
+    const queryParams = [offOn,"P*","EI"];
 
     const result = await pool.query(query, queryParams);
 
@@ -186,14 +186,14 @@ router.get("/getEIPStarPDPData", async (req, res) => {
 
 router.get("/getDPOAPlusPDPData", async (req, res) => {
   try {
-     const { region,  offOn } = req.query;
+     const {  offOn } = req.query;
      // Validate required parameters
-     if ( !region || !offOn  ) {
+     if (  !offOn  ) {
        return res.status(400).json({ error: "Missing required parameters-" });
      }
-    console.log("region",region);
-    const query = "SELECT * FROM get_dpo_a_plus_pdp_data($1, $2)";
-    const queryParams = [region, offOn];
+   // console.log("offOn",offOn);
+    const query = "SELECT * FROM ds_supply_view_pdp($1, $2, $3)";
+    const queryParams = [offOn,"A+","PO"];
 
     const result = await pool.query(query, queryParams);
 
@@ -208,14 +208,14 @@ router.get("/getDPOAPlusPDPData", async (req, res) => {
 
 router.get("/getDPOPStarPDPData", async (req, res) => {
   try {
-     const { region,  offOn } = req.query;
+     const { offOn } = req.query;
      // Validate required parameters
-     if ( !region || !offOn  ) {
+     if (  !offOn  ) {
        return res.status(400).json({ error: "Missing required parameters-" });
      }
-    console.log("region",region);
-    const query = "SELECT * FROM get_dpo_p_star_pdp_data($1, $2)";
-    const queryParams = [region, offOn];
+    //console.log("offOn",offOn);
+    const query = "SELECT * FROM ds_supply_view_pdp($1, $2, $3)";
+    const queryParams = [offOn,"P*","PO"];
 
     const result = await pool.query(query, queryParams);
 

@@ -10,15 +10,11 @@ import {
 import axios from "axios";
 
 const FilterControlsPDPVCDP = ({ onReportData }) => {
-  const [region, setRegion] = useState("All");
+  
   const [offOn, setOffOn] = useState("All");
   const [loading, setLoading] = useState(false);
 
-    const handleRegionChange = (event) => {
-    setRegion(event.target.value);
-  };
-
-  const handleOffOnChange = (event) => {
+    const handleOffOnChange = (event) => {
     setOffOn(event.target.value);
   };
 
@@ -32,7 +28,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/pdp/getEIAPlusPDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -41,7 +36,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/pdp/getEIPStarPDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -51,7 +45,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/pdp/getDPOAPlusPDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -61,7 +54,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/pdp/getDPOPStarPDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -73,7 +65,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/vcdp/getEIAPlusVCDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -82,8 +73,7 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/vcdp/getEIPStarVCDPData",
         {
           params: {
-            region,
-            offOn,
+             offOn,
           },
         }
       ); 
@@ -92,7 +82,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/vcdp/getDPOAPlusVCDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -102,7 +91,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
         "http://localhost:5000/vcdp/getDPOPStarVCDPData",
         {
           params: {
-            region,
             offOn,
           },
         }
@@ -116,7 +104,7 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
       
         if (onReportData) {
             console.log("PDPVCDP",pdpVcdpResponse);
-          onReportData(pdpVcdpResponse, { region, offOn }); // Pass filter values here
+          onReportData(pdpVcdpResponse, {  offOn }); // Pass filter values here
         }
       
       
@@ -141,22 +129,6 @@ const FilterControlsPDPVCDP = ({ onReportData }) => {
       }}
     >
       
-      <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="region-label">Market</InputLabel>
-        <Select
-          labelId="region-label"
-          id="region-select"
-          value={region}
-          label="Region"
-          onChange={handleRegionChange}
-        >
-          <MenuItem value="All">All</MenuItem>
-          <MenuItem value="NA">NA</MenuItem>
-          <MenuItem value="GGM">GGM</MenuItem>
-          <MenuItem value="Others">Others</MenuItem>
-        </Select>
-      </FormControl>
-
       <FormControl size="small" sx={{ minWidth: 150 }}>
         <InputLabel id="off-on-label">Off/On</InputLabel>
         <Select
