@@ -86,7 +86,7 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     // Step 3: Call the stored procedure
     try {
       // await pool.query("CALL public.transform_so_stage_to_main()");
-      await pool.query("select * from  public.transform_so_stage_to_main()");
+      await pool.query("select * from  public.transform_so_stage_to_main_v1()");
       console.log("Stored procedure called successfully.");
     } catch (error) {
       console.error("Error calling stored procedure:", error);
@@ -120,11 +120,13 @@ router.get("/skillCountsByMonth", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const query =
-      "SELECT * FROM get_demand_skill_counts_by_month_pivot_v7($1, $2, $3, $4)";
+    const pivotQuery =
+    "SELECT generate_skill_tower_pivot($1, $2, $3, $4);" // p_practice TEXT,    p_market TEXT,    p_off_on TEXT,    p_bu TEXT
     const queryParams = [practice, market, offOn, busUnit];
+    await pool.query(pivotQuery, queryParams);
 
-    const result = await pool.query(query, queryParams);
+    const query = "SELECT * FROM temp_skill_month_pivot;"
+    const result = await pool.query(query);
 
     res.json(result.rows);
   } catch (error) {
@@ -142,11 +144,12 @@ router.get("/top10AccountsCountsByMonth", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const query =
-      "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v3($1, $2, $3, $4)";
+    const pivotQuery =
+    "SELECT generate_top10_customer_pivot($1, $2, $3, $4);" // p_practice TEXT,    p_market TEXT,    p_off_on TEXT,    p_bu TEXT
     const queryParams = [practice, market, offOn, busUnit];
-    console.log("Executing query:", query, "with params:", queryParams); // Debug log
-    const result = await pool.query(query, queryParams);
+    await pool.query(pivotQuery, queryParams);
+    const query = "SELECT * FROM temp_customer_month_pivot ORDER BY \"Grand Total\" DESC;"
+    const result = await pool.query(query);
 
     res.json(result.rows);
   } catch (error) {
@@ -157,17 +160,18 @@ router.get("/top10AccountsCountsByMonth", async (req, res) => {
 
 router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
   try {
-    const { practice, market, offOn, busUnit } = req.query;
+    const { practice, market, offOn, busUnit, accountName } = req.query;
     // Validate required parameters
-    if (!practice || !market || !offOn || !busUnit) {
+    if (!practice || !market || !offOn || !busUnit || !accountName) {
       return res.status(400).json({ error: "Missing required parameters-" });
     }
     //get_demand_top10_accounts_breakup_counts_by_month_pivot_v1($1, $2, $3, $4, $5);
-    const query =
-      "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v3($1, $2, $3, $4)";
-    const queryParams = [practice, market, offOn, busUnit];
-
-    const result = await pool.query(query, queryParams);
+    const pivotQueryquery =
+    "SELECT generate_account_skill_grade_pivot($1, $2, $3, $4,$5)";
+    const queryParams = [practice, market, offOn, busUnit,accountName];
+    await pool.query(pivotQueryquery, queryParams);
+    const query="SELECT * FROM temp_account_skill_grade_month_pivot;"
+    const result = await pool.query(query);
 
     res.json(result.rows);
   } catch (error) {

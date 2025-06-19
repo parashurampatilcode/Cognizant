@@ -21,6 +21,7 @@ import * as XLSX from "xlsx";
 import * as htmlToImage from "html-to-image";
 import axios from "axios";
 
+
 const primaryColor = "#005EB8"; // Cognizant's primary blue
 const lighterBlue = "#B3D6F5"; // 2 shades lighter
 const lightestBlue = "#E6F0FA"; // 3 shades lighter
@@ -107,7 +108,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
   const popupTableRef = useRef(null);
 
   const primaryHeaders = [
-    "Skills",
+    "Skill Tower",
     "Total Demand",
     "Total Supply",
     "Total External Supply",
@@ -175,12 +176,22 @@ const DashboardTable = ({ reportData, filterValues }) => {
           }
         );
         const data = response.data;
-        const cols = Object.keys(data[0]).map((key, index) => ({
-          field: key,
-          headerName:key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " "),
-          flex: 1,
-          cellClassName: (params) => getCellClassName(params, data, index),
-        }));
+        const cols = Object.keys(data[0]).map((key, index) => {
+          const header = key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, " ");
+          let headerClassName = "";
+          if (primaryHeaders.includes(header)) {
+            headerClassName = "header-primary";
+          } else if (lighterHeaders.includes(header)) {
+            headerClassName = "header-lighter";
+          }
+          return {
+            field: key,
+            headerName: header,
+            flex: 1,
+            cellClassName: (params) => getCellClassName(params, data, index),
+            headerClassName,
+          };
+        });
         setPopupData({
           rows: data.map((row, index) => ({ ...row, id: index + 1 })),
           columns: cols,
@@ -346,32 +357,33 @@ const DashboardTable = ({ reportData, filterValues }) => {
       </div>
 
       <Dialog
-        open={openPopup}
-        onClose={() => setOpenPopup(false)}
-        maxWidth="x1"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            backgroundColor: primaryColor,
-            color: "#fff",
-            padding: "16px",
-            fontWeight: "bold",
-          }}
-        >
-          <Typography variant="h6" component="div">
-            {popupTitle}
-          </Typography>
-          <IconButton
-            onClick={() => setOpenPopup(false)}
-            sx={{ marginLeft: "auto", color: "#fff" }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
+  open={openPopup}
+  onClose={() => setOpenPopup(false)}
+  maxWidth="x1"
+  fullWidth
+  >
+  <DialogTitle
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      backgroundColor: primaryColor,
+      color: "#fff",
+      padding: "16px",
+      fontWeight: "bold",
+      
+    }}
+  >
+    <Typography variant="h6" component="div">
+      {popupTitle}
+    </Typography>
+    <IconButton
+      onClick={() => setOpenPopup(false)}
+      sx={{ marginLeft: "auto", color: "#fff" }}
+    >
+      <CloseIcon />
+    </IconButton>
+  </DialogTitle>
+  <DialogContent>
           {filterContext && (
             <Box sx={{ mb: 2, p: 1, bgcolor: lightGrey, borderRadius: 1 }}>
               <Typography
