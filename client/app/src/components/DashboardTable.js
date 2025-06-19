@@ -71,7 +71,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .high-pdp": {
     fontWeight: "bold",
-    backgroundColor: "#FFC107",
+    backgroundColor: "#FFF59D !important",
     color: "#000",
   },
   "& .MuiDataGrid-root": {

@@ -61,7 +61,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .high-pdp": {
     fontWeight: "bold",
-    backgroundColor: "#FFC107",
+    backgroundColor: "#FFF59D !important",
     color: "#000",
   },
   "& .MuiDataGrid-root": {
@@ -135,7 +135,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
             !isLastRow &&
             //   isMiddleColumn &&
             !isNaN(numericValue) &&
-            numericValue > 10;
+            numericValue >= 10;
 
           return `${isLastRow ? "last-row" : ""} 
             ${isFirstColumn ? "first-column" : ""}
@@ -207,7 +207,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
               !isLastRow &&
               //  isMiddleColumn &&
               !isNaN(numericValue) &&
-              numericValue > 10;
+              numericValue >= 10;
 
             return `${isLastRow ? "last-row" : ""} 
               ${isLastColumn ? "last-column" : ""}

@@ -18,7 +18,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
     },
     backgroundColor: primaryColor,
     color: "#FFFFFF !important",
-    fontSize: "0.8rem !important", // Reduced font size
+    fontSize: "0.9rem !important", // Reduced font size
     textTransform: "none",
     borderBottom: `2px solid ${primaryColor}`,
     whiteSpace: "normal",
@@ -43,7 +43,7 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   // "& .high-pdp": {
   //   fontWeight: "bold",
-  //   backgroundColor: "#FFC107",
+  //   backgroundColor: "#FFF59D !important",
   //   color: "#000",
   // },
   "& .MuiDataGrid-root": {
