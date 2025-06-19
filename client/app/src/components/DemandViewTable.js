@@ -272,7 +272,7 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
       <Dialog
         open={openPopup}
         onClose={() => setOpenPopup(false)}
-        maxWidth="lg"
+        maxWidth="x1"
         fullWidth
       >
         <DialogTitle

@@ -4,7 +4,7 @@ const router = express.Router();
 const LateralHiring = require("../models/lateralHiring");
 const multer = require("multer");
 const xlsx = require("xlsx");
-
+const pool = require("../config/db");
 // Multer configuration
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -53,6 +53,15 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
         console.error("Error details:", error);
         // Continue processing other rows
       }
+    }
+
+    //Call the function to load data from stage to main table
+    try {
+      await pool.query("select * from  public.transform_lateral_hire_stage_to_main()");
+      console.log("Stored procedure called successfully.");
+    } catch (error) {
+      console.error("Error calling stored procedure:", error);
+      return res.status(500).json({ error: "Error calling stored procedure" });
     }
 
     res.json({

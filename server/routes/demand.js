@@ -164,7 +164,7 @@ router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
     }
     //get_demand_top10_accounts_breakup_counts_by_month_pivot_v1($1, $2, $3, $4, $5);
     const query =
-      "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v1($1, $2, $3, $4)";
+      "SELECT * FROM get_demand_top10_accounts_counts_by_month_pivot_v3($1, $2, $3, $4)";
     const queryParams = [practice, market, offOn, busUnit];
 
     const result = await pool.query(query, queryParams);
