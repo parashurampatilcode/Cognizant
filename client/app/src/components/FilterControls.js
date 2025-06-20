@@ -93,7 +93,7 @@ const FilterControls = ({ onReportData, reportName }) => {
           <MenuItem value="All">All</MenuItem>
           <MenuItem value="NA">NA</MenuItem>
           <MenuItem value="GGM">GGM</MenuItem>
-          <MenuItem value="Others">Others</MenuItem>
+          
         </Select>
       </FormControl>
 

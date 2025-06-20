@@ -35,7 +35,7 @@ const ManageUsersPage = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [selectedUserForPassword, setSelectedUserForPassword] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-
+  const primaryColor = "#005EB8"; // Cognizant's primary blue
   // Fetch users from new grouped-users endpoint
   const fetchUsers = async () => {
     setLoading(true);
@@ -207,22 +207,17 @@ const ManageUsersPage = () => {
 
   return (
     <Box mt={4}>
-      <Typography
-        variant="h5"
-        mb={2}
-        sx={{
-          background: "#E6F0FA", // Match Demand Supply Mapping header color
-          color: "#005EB8",
-          fontWeight: 600,
-          padding: 2,
-          borderRadius: 1,
-          borderBottom: "2px solid #005EB8",
-          letterSpacing: "0.5px",
-          textTransform: "uppercase",
-        }}
-      >
-        Manage Users
-      </Typography>
+       <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    Manage Users
+                   </Typography>
       {error && <Alert severity="error">{error}</Alert>}
       {success && <Alert severity="success">{success}</Alert>}
       {loading ? (

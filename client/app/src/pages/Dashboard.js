@@ -7,7 +7,7 @@ import FilterControls from "../components/FilterControls";
 function Dashboard() {
   const [reportData, setReportData] = useState(null);
   const [filterValues, setFilterValues] = useState({});
-
+  const primaryColor = "#005EB8"; 
   const handleReportData = (data, filters) => {
     setReportData(data);
     setFilterValues(filters);
@@ -23,7 +23,17 @@ function Dashboard() {
           mb: 2,
         }}
       >
-        <Typography variant="h4">Dashboard</Typography>
+        <Typography
+      variant="h5"
+      sx={{
+        fontWeight: "bold",
+        color: primaryColor,
+        marginBottom: 2,
+        textAlign: "left",
+      }}
+    >
+      Demand & Supply Dashboard
+    </Typography>
       </Box>
       <FilterControls onReportData={handleReportData} />
       {reportData && (

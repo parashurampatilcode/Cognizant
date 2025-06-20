@@ -11,7 +11,7 @@ function PDPVCDP() {
 
 const [pdpReportDatas, setPDPReportDatas] = useState([]);
 const [vcdpReportDatas, setVCDPReportDatas] = useState([]);
-
+const primaryColor = "#005EB8"; // Cognizant's primary blue
 const handleReportData = (data) => {
     setPDPReportDatas(data.pdpResponseData);
     setVCDPReportDatas(data.vcdpResponseData)
@@ -42,7 +42,18 @@ const handleReportData = (data) => {
             mb: 2,
           }}
         >
-        <Typography variant="h4">PDP & VCDP Details</Typography>
+         <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    PDP & VCDP WoW Report
+                   </Typography>
+
         </Box>
         <FilterControlsPDPVCDP onReportData={handleReportData} />
         {pdpReportDatas && (

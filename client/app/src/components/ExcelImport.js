@@ -192,7 +192,7 @@ function ExcelImport() {
       setError("This file type is not yet supported.");
     }
   };
-
+  const primaryColor = "#005EB8"; // Cognizant's primary blue
   const getRowId = (row) =>
     row.assoId || row.import_id || row.pdp_main_id || row.vcdp_main_id; // Use assoId as the ID
 
@@ -201,9 +201,17 @@ function ExcelImport() {
       <Box sx={{ display: "flex", alignItems: "flex-start", mb: 4 }}>
         {/* Left: Import controls */}
         <Box sx={{ flex: "0 0 320px", mr: 4, minWidth: 900 }}>
-          <Typography variant="h5" sx={{ marginBottom: 3 }}>
-            Excel Import
-          </Typography>
+        <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    Excel Import
+                   </Typography>
           <FormControl component="fieldset" sx={{ marginBottom: 3 }}>
             <FormLabel component="legend">Select Import Type</FormLabel>
             <RadioGroup
@@ -251,9 +259,18 @@ function ExcelImport() {
         </Box>
         {/* Right: Recent File Imports */}
         <Box sx={{ width: 600, ml: "auto" }}>
-          <Typography variant="h5" sx={{ marginBottom: 1 }}>
-            Recent File Imports
-          </Typography>
+        <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    Recent File Imports
+                   </Typography>
+
           <DataTable
             rows={uploadLogs.map((log) => ({
               id: log.out_id,

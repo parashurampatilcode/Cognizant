@@ -87,7 +87,7 @@ const StyledClickableCell = styled("div")(({ theme }) => ({
   },
 }));
 
-const DemandViewTable = ({ reportData, filterValues, tableName }) => {
+const DemandViewTable = ({ reportData, filterValues, tableName,tableHeader }) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const [openPopup, setOpenPopup] = useState(false);
@@ -227,7 +227,19 @@ const DemandViewTable = ({ reportData, filterValues, tableName }) => {
   };
 
   return (
+    
     <Box sx={{ position: "relative" }}>
+      <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    {tableHeader}
+                   </Typography>
       <Box
         sx={{
           position: "absolute",

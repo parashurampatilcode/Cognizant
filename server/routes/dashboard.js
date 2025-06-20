@@ -12,7 +12,7 @@ router.get("/report", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const query = "SELECT * FROM ds_demand_supply_main_view_v1($1, $2, $3)";
+    const query = "SELECT * FROM ds_demand_supply_main_view_v2($1, $2, $3)";
     const queryParams = [practice, market, offOn];
 
     const result = await pool.query(query, queryParams);
@@ -33,7 +33,7 @@ router.get("/detailview", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const query = "SELECT * FROM ds_demand_supply_detail_view_v2($1, $2, $3, $4)"; // Update the query
+    const query = "SELECT * FROM ds_demand_supply_detail_view_v3($1, $2, $3, $4)"; // Update the query
     const queryParams = [skill,offOn, practice, market ]; // Pass all four parameters
 
     const result = await pool.query(query, queryParams);

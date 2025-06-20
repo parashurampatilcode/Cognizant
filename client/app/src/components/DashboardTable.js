@@ -110,7 +110,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
   const primaryHeaders = [
     "Skill Tower",
     "Total Demand",
-    "Total Supply",
+    "Total Internal Supply",
     "Total External Supply",
     "Gap"
   ];
@@ -300,6 +300,7 @@ const DashboardTable = ({ reportData, filterValues }) => {
 
   return (
     <Box sx={{ position: "relative" }}>
+      
       <Box
         sx={{
           position: "absolute",

@@ -11,7 +11,7 @@ function DemandView() {
   const [filterValues, setFilterValues] = useState({});
   const [skillCountsByMonthData, setSkillCountsByMonthData] = useState(null);
   const [top10AccountsCountsByMonthData, setTop10AccountsCountsByMonthData] = useState(null);
-
+  const primaryColor = "#005EB8"; 
   const handleReportData = (data, filters) => {
     //setReportData(data);
     console.log("Demand view",data);
@@ -30,14 +30,24 @@ function DemandView() {
             mb: 2,
           }}
         >
-         <Typography variant="h4">Demand View - Detailed View-</Typography>;
+          <Typography
+               variant="h5"
+               sx={{
+                 fontWeight: "bold",
+                 color: primaryColor,
+                 marginBottom: 2,
+                 textAlign: "left",
+               }}
+             >
+              Demand View - Detailed View
+             </Typography>
         </Box>
         <FilterControlsDemand onReportData={handleReportData} reportName = 'Demand' />
         {skillCountsByMonthData && (
-          <DemandViewTable reportData={skillCountsByMonthData} filterValues={filterValues} tableName = 'Skills' />
+          <DemandViewTable reportData={skillCountsByMonthData} filterValues={filterValues} tableName = 'Skills' tableHeader = 'Detailed Demand' />
         )}
         {top10AccountsCountsByMonthData && (
-          <DemandViewTable reportData={top10AccountsCountsByMonthData} filterValues={filterValues} tableName = 'Top10Accounts'/>
+          <DemandViewTable reportData={top10AccountsCountsByMonthData} filterValues={filterValues} tableName = 'Top10Accounts' tableHeader = 'Top 10 Accounts' />
         )}
       </Box>
   

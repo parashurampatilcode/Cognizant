@@ -1015,9 +1015,18 @@ function DemandSupplyMatching() {
 
   return (
     <Box sx={{ width: "100%" }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
-        Demand Supply Mapping
-      </Typography>
+       <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    Demand Supply Mapping
+                   </Typography>
+
       <Box
         sx={{
           display: "flex",
@@ -1218,7 +1227,7 @@ function DemandSupplyMatching() {
         open={auditOpen}
         onClose={handleAuditClose}
         fullWidth
-        maxWidth="lg" // increased popup width
+        maxWidth="lx" // increased popup width
       >
         <DialogTitle>Audit History</DialogTitle>
         <DialogContent>

@@ -23,7 +23,7 @@ const ddTypeMap = {
   buname: "MARKET_UNIT",
   sbuname: "BUSS_UNIT_DESC",
 };
-
+const primaryColor = "#005EB8"; // Cognizant's primary blue
 const AddUserForm = () => {
   const [form, setForm] = useState({
     username: "",
@@ -293,9 +293,18 @@ const AddUserForm = () => {
 
   return (
     <Box maxWidth={600} mx="auto" mt={4}>
-      <Typography variant="h5" mb={2}>
-        Add New User
-      </Typography>
+       <Typography
+                     variant="h5"
+                     sx={{
+                       fontWeight: "bold",
+                       color: primaryColor,
+                       marginBottom: 2,
+                       textAlign: "left",
+                     }}
+                   >
+                    Add New user
+                   </Typography>
+
       <form onSubmit={handleSubmit}>
         <TextField
           label="Username (Employee ID)"

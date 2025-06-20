@@ -74,7 +74,7 @@ const PDPVCDPSupplyTable = ({ reportData, tableName }) => {
   const [rows, setRows] = useState([]);
   const [columns, setColumns] = useState([]);
   const tableRef = useRef(null);
-
+  const primaryColor = "#005EB8"; // Cognizant's primary blue
   useMemo(() => {
     if (reportData && reportData.length > 0) {
       console.log("in seting rwos and columns", reportData);
@@ -161,6 +161,7 @@ const PDPVCDPSupplyTable = ({ reportData, tableName }) => {
         sx={{
           textAlign: "center",
           fontWeight: "bold",
+          color: primaryColor,
           //backgroundColor: "#FFC107"
         }}
       >
