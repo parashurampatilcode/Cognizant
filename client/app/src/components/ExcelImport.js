@@ -200,7 +200,7 @@ function ExcelImport() {
     <Box sx={{ padding: 3 }}>
       <Box sx={{ display: "flex", alignItems: "flex-start", mb: 4 }}>
         {/* Left: Import controls */}
-        <Box sx={{ flex: "0 0 320px", mr: 4 }}>
+        <Box sx={{ flex: "0 0 320px", mr: 4, minWidth: 900 }}>
           <Typography variant="h5" sx={{ marginBottom: 3 }}>
             Excel Import
           </Typography>
@@ -210,7 +210,7 @@ function ExcelImport() {
               row
               value={selectedType}
               onChange={handleTypeChange}
-              sx={{ flexWrap: "nowrap" }}
+              sx={{ flexWrap: "nowrap", width: "100%", overflowX: "auto" }}
             >
               <FormControlLabel
                 value="Demand"
