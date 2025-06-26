@@ -337,18 +337,22 @@ const DashboardTable = ({ reportData, filterValues }) => {
 
       <div
         ref={tableRef}
-        style={{ height: 600, width: "100%", overflow: "auto" }}
+        style={{ height: 670, width: "100%"}}
       >
         <StyledDataGrid
           rows={rows}
-          columns={columns}
-          rowHeight={30}
+          columns={columns.map((col) => ({
+            ...col,
+            flex: 1, // Adjust column size dynamically to fit the table width
+            minWidth: 100, // Set a minimum width for columns
+          }))}
+          rowHeight={25}
           pageSize={10}
           rowsPerPageOptions={[10, 25, 50]}
           disableSelectionOnClick
           pagination={false}
           hideFooterPagination
-          autoWidth
+          autoHeight={false} // Ensure the table height is fixed
           onCellClick={handleCellClick}
           sx={{
             "& .MuiDataGrid-main": { overflow: "auto" },

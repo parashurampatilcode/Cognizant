@@ -281,7 +281,7 @@ function App() {
             />
             <Box sx={{ flex: 1, textAlign: "center", marginLeft: -28 }}>
               <Typography variant="h5" component="div">
-                EI Demand Supply Management
+                EI & PO Demand Supply Management
               </Typography>
             </Box>
             {/* User Info and Profile Icon */}
