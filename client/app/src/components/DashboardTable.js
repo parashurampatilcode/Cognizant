@@ -66,7 +66,12 @@ const StyledDataGrid = styled(DataGrid)(({ theme }) => ({
   },
   "& .negative-value": {
     fontWeight: "bold",
-    backgroundColor: "#FF4D4D",
+    backgroundColor: "green",
+    color: "#fff",
+  },
+  "& .positive-value": {
+    fontWeight: "bold",
+    backgroundColor: "#CD5C5C",
     color: "#fff",
   },
   "& .high-pdp": {
@@ -217,8 +222,8 @@ const DashboardTable = ({ reportData, filterValues }) => {
     ].includes(params.colDef.headerName);
     const numericValue = Number(params.value);
 
-    const isNegative = isLastColumn && !isNaN(numericValue) && numericValue < 0;
-
+    const isGapNegative = isLastColumn && !isNaN(numericValue) && numericValue < 0;
+    const isGapPostive = isLastColumn && !isNaN(numericValue) && numericValue >= 0;
     const highPdp =
       !isLastRow && isMiddleColumn && !isNaN(numericValue) && numericValue >= 10;
 
@@ -226,7 +231,8 @@ const DashboardTable = ({ reportData, filterValues }) => {
             ${isFirstColumn ? "first-column" : ""}
             ${isLastColumn ? "last-column" : ""}
             ${highPdp ? "high-pdp" : ""}
-            ${isNegative ? "negative-value" : ""}`.trim();
+            ${isGapPostive ? "positive-value" : ""}
+            ${isGapNegative ? "negative-value" : ""}`.trim();
   };
 
   const handleExportExcel = () => {
