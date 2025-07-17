@@ -595,9 +595,19 @@ function DemandSupplyMatching() {
         setData(fetchedData);
 
         if (response.data.length > 0) {
+          const headerNameMap = {
+            "Rotation So": "Rotation SO",
+            "So Id": "SO Id",
+            "So Line Status": "SO Line Status",
+            "So Grade": "SO Grade",
+            "So Submission Date": "SO Submission Date",
+            "So Billability": "SO Billability",
+            "Open So Ageing": "Open SO Ageing",
+            "Open So Ageing Range": "Open SO Ageing Range",
+          };
           let cols = Object.keys(response.data[0]).map((key) => ({
             field: key,
-            headerName: key,
+            headerName: headerNameMap[key] || key,
             width: 150,
           }));
           
@@ -797,7 +807,7 @@ function DemandSupplyMatching() {
     (!newRow["Rotation So"] || newRow["Rotation So"].toString().trim() === "")
   ) {
     setValidationMsg(
-      "Rotation So is mandatory when Supply Source is 'Rotation W backfill' or 'Rotation wo backfill'."
+      "Rotation SO is mandatory when Supply Source is 'Rotation W backfill' or 'Rotation wo backfill'."
     );
     setValidationOpen(true);
     lastEditRowId.current = newRow.item_id;
