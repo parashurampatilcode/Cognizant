@@ -27,7 +27,6 @@ function getLoggedInUserId(req) {
   }
 }
 
-
 // Get all Demand records
 router.get("/", async (req, res) => {
   try {
@@ -46,6 +45,9 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded." });
     }
+
+    // Optional date from form for stamping the batch
+    const reportExtractionDate = req.body.report_extraction_date || null;
 
     // Step 1: Truncate the table
     try {
@@ -80,6 +82,23 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
         });
         console.error(`Error processing row:`, row);
         console.error("Error details:", error);
+      }
+    }
+
+    // Step 2.1: Update report_extraction_date for this batch (if provided)
+    if (reportExtractionDate) {
+      try {
+        await pool.query('UPDATE "so_stage" SET report_extraction_date = $1', [
+          reportExtractionDate,
+        ]);
+        console.log("report_extraction_date updated for current batch.");
+      } catch (error) {
+        console.error("Error updating report_extraction_date:", error);
+        return res.status(500).json({
+          error:
+            "Error updating report_extraction_date in so_stage. Ensure the column exists.",
+          details: error.message,
+        });
       }
     }
 
@@ -120,12 +139,11 @@ router.get("/skillCountsByMonth", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const pivotQuery =
-    "SELECT generate_skill_tower_pivot($1, $2, $3, $4);" // p_practice TEXT,    p_market TEXT,    p_off_on TEXT,    p_bu TEXT
+    const pivotQuery = "SELECT generate_skill_tower_pivot($1, $2, $3, $4);"; // p_practice TEXT,    p_market TEXT,    p_off_on TEXT,    p_bu TEXT
     const queryParams = [practice, market, offOn, busUnit];
     await pool.query(pivotQuery, queryParams);
 
-    const query = "SELECT * FROM temp_skill_month_pivot;"
+    const query = "SELECT * FROM temp_skill_month_pivot;";
     const result = await pool.query(query);
 
     res.json(result.rows);
@@ -144,11 +162,11 @@ router.get("/top10AccountsCountsByMonth", async (req, res) => {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    const pivotQuery =
-    "SELECT generate_top10_customer_pivot($1, $2, $3, $4);" // p_practice TEXT,    p_market TEXT,    p_off_on TEXT,    p_bu TEXT
+    const pivotQuery = "SELECT generate_top10_customer_pivot($1, $2, $3, $4);"; // p_practice TEXT,    p_market TEXT,    p_off_on TEXT,    p_bu TEXT
     const queryParams = [practice, market, offOn, busUnit];
     await pool.query(pivotQuery, queryParams);
-    const query = "SELECT * FROM temp_customer_month_pivot ORDER BY \"Grand Total\" DESC;"
+    const query =
+      'SELECT * FROM temp_customer_month_pivot ORDER BY "Grand Total" DESC;';
     const result = await pool.query(query);
 
     res.json(result.rows);
@@ -167,10 +185,10 @@ router.get("/top10AccountsBreakUpCountsByMonth", async (req, res) => {
     }
     //get_demand_top10_accounts_breakup_counts_by_month_pivot_v1($1, $2, $3, $4, $5);
     const pivotQueryquery =
-    "SELECT generate_account_skill_grade_pivot($1, $2, $3, $4,$5)";
-    const queryParams = [practice, market, offOn, busUnit,accountName];
+      "SELECT generate_account_skill_grade_pivot($1, $2, $3, $4,$5)";
+    const queryParams = [practice, market, offOn, busUnit, accountName];
     await pool.query(pivotQueryquery, queryParams);
-    const query="SELECT * FROM temp_account_skill_grade_month_pivot;"
+    const query = "SELECT * FROM temp_account_skill_grade_month_pivot;";
     const result = await pool.query(query);
 
     res.json(result.rows);
@@ -227,7 +245,7 @@ router.post("/update", async (req, res) => {
       CrossSkillRequired,
       RemarksDetails,
     ];
-    console.log("Executing query:", query, "with params:", params); // 
+    console.log("Executing query:", query, "with params:", params); //
     await pool.query(query, params);
     res.status(200).json({ message: "Row updated successfully." });
   } catch (error) {
@@ -259,26 +277,33 @@ router.get("/dropdownBySubType", async (req, res) => {
   const { fieldName } = req.query;
   const { subType } = req.query;
 
-  if (!fieldName && !subType ) {
+  if (!fieldName && !subType) {
     console.error("Field name or subtype is missing in the request."); // Debug log
-    return res.status(400).json({ error: "Field name and Sub Type are required" });
+    return res
+      .status(400)
+      .json({ error: "Field name and Sub Type are required" });
   }
 
   try {
     console.log(`Fetching dropdown values for field: ${fieldName}`); // Debug log
     console.log(`Fetching dropdown values for subtype: ${subType}`); // Debug log
-    const dropdownValues = await Demand.getDropdownValuesByTypeAndSubType(fieldName,subType);
+    const dropdownValues = await Demand.getDropdownValuesByTypeAndSubType(
+      fieldName,
+      subType
+    );
     //console.log(`Dropdown values for ${fieldName}:`, dropdownValues); // Debug log
     res.json(dropdownValues);
   } catch (error) {
     console.error("Error fetching dropdown values by subtype:", error);
-    res.status(500).json({ error: "Failed to fetch dropdown values by sub type" });
+    res
+      .status(500)
+      .json({ error: "Failed to fetch dropdown values by sub type" });
   }
 });
 
 router.get("/audit_history", async (req, res) => {
   const { unique_id } = req.query;
-  
+
   if (!unique_id) {
     return res.status(400).json({ error: "unique_id is required" });
   }
@@ -323,8 +348,8 @@ router.post("/audit_insert", async (req, res) => {
   const RemarksDetails = req.body["Remarks Details"];
   //console.log("User ID from JWT:", userId); // Debug log
   //const { soid, status, roles, demandType, demandStatus, notes,fulfilmentPlan,demandCategory,supplySource,rotationSO,supplyAccount,
-   // identifiedAssoIdExtCandidateId,identifiedAssocName,grades,effMonth,allocationDate,allocationWeek,includedInForecast,crossSkillRequired,
-   // remarksDetails } = req.body;
+  // identifiedAssoIdExtCandidateId,identifiedAssocName,grades,effMonth,allocationDate,allocationWeek,includedInForecast,crossSkillRequired,
+  // remarksDetails } = req.body;
   // Updated required parameters: make 'status' optional
   if (!SoId) {
     return res.status(400).json({
@@ -336,9 +361,29 @@ router.post("/audit_insert", async (req, res) => {
   try {
     const query = `CALL public.ds_insert_so_data_to_audit_history($1, $2, $3, $4, $5, $6, $7, $8, $9,
        $10, $11, $12, $13, $14, $15, $16, $17, $18,$19, $20, $21)`;
-    const params = [SoId, auditStatus, "",userId,"",AllocationWeek ,CrossSkillRequired,DemandCategory,DemandStatus,DemandType,
-      EffMonth, FulfilmentPlan,Grades,IdentifiedAssoIdExtCandidateId,IdentifiedAssocName,IncludedInForecast,RemarksDetails,RotationSO,
-      SupplyAccount, SupplySource, AllocationDate];
+    const params = [
+      SoId,
+      auditStatus,
+      "",
+      userId,
+      "",
+      AllocationWeek,
+      CrossSkillRequired,
+      DemandCategory,
+      DemandStatus,
+      DemandType,
+      EffMonth,
+      FulfilmentPlan,
+      Grades,
+      IdentifiedAssoIdExtCandidateId,
+      IdentifiedAssocName,
+      IncludedInForecast,
+      RemarksDetails,
+      RotationSO,
+      SupplyAccount,
+      SupplySource,
+      AllocationDate,
+    ];
     await pool.query(query, params);
     res.json({ message: "Audit record inserted successfully." });
   } catch (error) {

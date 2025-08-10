@@ -11,6 +11,7 @@ import {
   FormControl,
   FormLabel,
   Alert,
+  TextField,
 } from "@mui/material";
 import UploadComponent from "./UploadComponent";
 import DataTable from "./DataTable";
@@ -22,6 +23,7 @@ function ExcelImport() {
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
   const [uploadLogs, setUploadLogs] = useState([]);
+  const [reportExtractionDate, setReportExtractionDate] = useState("");
 
   // Get username from localStorage or context (adjust as per your app)
   const username = localStorage.getItem("username") || "Unknown";
@@ -45,6 +47,10 @@ function ExcelImport() {
     setUploadedData(null); // Clear data when changing type
     setError(null);
     setSuccessMessage(null);
+    // Reset date field when type changes
+    if (event.target.value !== "Demand") {
+      setReportExtractionDate("");
+    }
   };
 
   const handleUpload = async (file) => {
@@ -54,12 +60,21 @@ function ExcelImport() {
       selectedType === "Demand" ||
       selectedType === "Lateral Hiring"
     ) {
+      // For Demand, ensure reportExtractionDate is provided
+      if (selectedType === "Demand" && !reportExtractionDate) {
+        setError("Please select Report Extraction Date before uploading.");
+        return;
+      }
+
       setLoading(true);
       setError(null);
       setSuccessMessage(null);
       try {
         const formData = new FormData();
         formData.append("file", file);
+        if (selectedType === "Demand") {
+          formData.append("report_extraction_date", reportExtractionDate);
+        }
 
         const endpoint =
           selectedType === "PDP"
@@ -201,17 +216,17 @@ function ExcelImport() {
       <Box sx={{ display: "flex", alignItems: "flex-start", mb: 4 }}>
         {/* Left: Import controls */}
         <Box sx={{ flex: "0 0 320px", mr: 4, minWidth: 900 }}>
-        <Typography
-                     variant="h5"
-                     sx={{
-                       fontWeight: "bold",
-                       color: primaryColor,
-                       marginBottom: 2,
-                       textAlign: "left",
-                     }}
-                   >
-                    Excel Import
-                   </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              color: primaryColor,
+              marginBottom: 2,
+              textAlign: "left",
+            }}
+          >
+            Excel Import
+          </Typography>
           <FormControl component="fieldset" sx={{ marginBottom: 3 }}>
             <FormLabel component="legend">Select Import Type</FormLabel>
             <RadioGroup
@@ -245,6 +260,20 @@ function ExcelImport() {
               />
             </RadioGroup>
           </FormControl>
+
+          {selectedType === "Demand" && (
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              <TextField
+                label="Report Extraction Date"
+                type="date"
+                value={reportExtractionDate}
+                onChange={(e) => setReportExtractionDate(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                sx={{ width: 260 }}
+              />
+            </Box>
+          )}
+
           {error && (
             <Alert severity="error" sx={{ marginBottom: 2 }}>
               {error}
@@ -259,17 +288,17 @@ function ExcelImport() {
         </Box>
         {/* Right: Recent File Imports */}
         <Box sx={{ width: 600, ml: "auto" }}>
-        <Typography
-                     variant="h5"
-                     sx={{
-                       fontWeight: "bold",
-                       color: primaryColor,
-                       marginBottom: 2,
-                       textAlign: "left",
-                     }}
-                   >
-                    Recent File Imports
-                   </Typography>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: "bold",
+              color: primaryColor,
+              marginBottom: 2,
+              textAlign: "left",
+            }}
+          >
+            Recent File Imports
+          </Typography>
 
           <DataTable
             rows={uploadLogs.map((log) => ({
