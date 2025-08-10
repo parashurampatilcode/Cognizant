@@ -26,6 +26,17 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "No file uploaded." });
     }
 
+    // Optional date from form for stamping the batch
+    const reportExtractionDate = req.body.report_extraction_date || null;
+
+    // Ensure stage table contains only the current batch
+    try {
+      await pool.query('TRUNCATE TABLE "vcdp_stage"');
+    } catch (error) {
+      console.error("Error truncating vcdp_stage:", error);
+      return res.status(500).json({ error: "Error truncating vcdp_stage" });
+    }
+
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
@@ -38,8 +49,28 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
         await VCDP.create(row);
       } catch (error) {
         console.error(`Error processing row:`, row);
-        console.error('Error details:', error);
+        console.error("Error details:", error);
         // Continue processing other rows
+      }
+    }
+
+    // Update report_extraction_date on this batch if provided
+    if (reportExtractionDate) {
+      try {
+        await pool.query(
+          'UPDATE "vcdp_stage" SET report_extraction_date = $1',
+          [reportExtractionDate]
+        );
+      } catch (error) {
+        console.error(
+          "Error updating report_extraction_date in vcdp_stage:",
+          error
+        );
+        return res.status(500).json({
+          error:
+            "Error updating report_extraction_date in vcdp_stage. Ensure the column exists.",
+          details: error.message,
+        });
       }
     }
 
@@ -55,26 +86,25 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
     res.json({ message: "File processed successfully" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Server error",
-      details: err.message 
+      details: err.message,
     });
   }
 });
-
 
 //Get EI VCDP A+ data
 
 router.get("/getEIAPlusVCDPData", async (req, res) => {
   try {
-     const {  offOn } = req.query;
-     // Validate required parameters
-     if (  !offOn  ) {
-       return res.status(400).json({ error: "Missing required parameters-" });
-     }
+    const { offOn } = req.query;
+    // Validate required parameters
+    if (!offOn) {
+      return res.status(400).json({ error: "Missing required parameters-" });
+    }
     //console.log("offOn",offOn);
     const query = "SELECT * FROM ds_supply_view_vcdp($1, $2, $3)";
-    const queryParams = [offOn,"A+","EI"];
+    const queryParams = [offOn, "A+", "EI"];
 
     const result = await pool.query(query, queryParams);
 
@@ -89,14 +119,14 @@ router.get("/getEIAPlusVCDPData", async (req, res) => {
 
 router.get("/getEIPStarVCDPData", async (req, res) => {
   try {
-     const { offOn } = req.query;
-     // Validate required parameters
-     if (  !offOn  ) {
-       return res.status(400).json({ error: "Missing required parameters-" });
-     }
+    const { offOn } = req.query;
+    // Validate required parameters
+    if (!offOn) {
+      return res.status(400).json({ error: "Missing required parameters-" });
+    }
     //console.log("offOn",offOn);
     const query = "SELECT * FROM ds_supply_view_vcdp($1, $2, $3)";
-    const queryParams = [offOn,"P*","EI"];
+    const queryParams = [offOn, "P*", "EI"];
 
     const result = await pool.query(query, queryParams);
 
@@ -111,14 +141,14 @@ router.get("/getEIPStarVCDPData", async (req, res) => {
 
 router.get("/getDPOAPlusVCDPData", async (req, res) => {
   try {
-     const {  offOn } = req.query;
-     // Validate required parameters
-     if (  !offOn  ) {
-       return res.status(400).json({ error: "Missing required parameters-" });
-     }
+    const { offOn } = req.query;
+    // Validate required parameters
+    if (!offOn) {
+      return res.status(400).json({ error: "Missing required parameters-" });
+    }
     //console.log("offOn",offOn);
     const query = "SELECT * FROM ds_supply_view_vcdp($1, $2, $3)";
-    const queryParams = [offOn,"A+","PO"];
+    const queryParams = [offOn, "A+", "PO"];
 
     const result = await pool.query(query, queryParams);
 
@@ -133,14 +163,14 @@ router.get("/getDPOAPlusVCDPData", async (req, res) => {
 
 router.get("/getDPOPStarVCDPData", async (req, res) => {
   try {
-     const {  offOn } = req.query;
-     // Validate required parameters
-     if (  !offOn  ) {
-       return res.status(400).json({ error: "Missing required parameters-" });
-     }
+    const { offOn } = req.query;
+    // Validate required parameters
+    if (!offOn) {
+      return res.status(400).json({ error: "Missing required parameters-" });
+    }
     //console.log("offOn",offOn);
     const query = "SELECT * FROM ds_supply_view_vcdp($1, $2, $3)";
-    const queryParams = [offOn,"P*","PO"];
+    const queryParams = [offOn, "P*", "PO"];
 
     const result = await pool.query(query, queryParams);
 
