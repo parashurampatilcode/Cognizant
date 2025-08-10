@@ -58,11 +58,12 @@ function ExcelImport() {
       selectedType === "Demand" ||
       selectedType === "Lateral Hiring"
     ) {
-      // For Demand, PDP and VCDP, ensure reportExtractionDate is provided
+      // For Demand, PDP, VCDP and Lateral Hiring, ensure reportExtractionDate is provided
       if (
         (selectedType === "Demand" ||
           selectedType === "PDP" ||
-          selectedType === "VCDP") &&
+          selectedType === "VCDP" ||
+          selectedType === "Lateral Hiring") &&
         !reportExtractionDate
       ) {
         setError("Please select Report Extraction Date before uploading.");
@@ -78,7 +79,8 @@ function ExcelImport() {
         if (
           selectedType === "Demand" ||
           selectedType === "PDP" ||
-          selectedType === "VCDP"
+          selectedType === "VCDP" ||
+          selectedType === "Lateral Hiring"
         ) {
           formData.append("report_extraction_date", reportExtractionDate);
         }

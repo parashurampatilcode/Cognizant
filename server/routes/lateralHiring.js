@@ -27,6 +27,17 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "No file uploaded." });
     }
 
+    // Optional date from form for stamping the batch
+    const reportExtractionDate = req.body.report_extraction_date || null;
+
+    // Ensure stage table contains only the current batch
+    try {
+      await pool.query('TRUNCATE TABLE "lateral_hiring_stage"');
+    } catch (error) {
+      console.error("Error truncating lateral_hiring_stage:", error);
+      return res.status(500).json({ error: "Error truncating stage table" });
+    }
+
     const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
@@ -55,9 +66,31 @@ router.post("/uploadAndProcess", upload.single("file"), async (req, res) => {
       }
     }
 
+    // Update report_extraction_date on this batch if provided
+    if (reportExtractionDate) {
+      try {
+        await pool.query(
+          'UPDATE "lateral_hiring_stage" SET report_extraction_date = $1',
+          [reportExtractionDate]
+        );
+      } catch (error) {
+        console.error(
+          "Error updating report_extraction_date in lateral_hiring_stage:",
+          error
+        );
+        return res.status(500).json({
+          error:
+            "Error updating report_extraction_date in stage table. Ensure the column exists.",
+          details: error.message,
+        });
+      }
+    }
+
     //Call the function to load data from stage to main table
     try {
-      await pool.query("select * from  public.transform_lateral_hire_stage_to_main()");
+      await pool.query(
+        "select * from  public.transform_lateral_hire_stage_to_main()"
+      );
       console.log("Stored procedure called successfully.");
     } catch (error) {
       console.error("Error calling stored procedure:", error);
