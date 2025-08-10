@@ -47,10 +47,8 @@ function ExcelImport() {
     setUploadedData(null); // Clear data when changing type
     setError(null);
     setSuccessMessage(null);
-    // Reset date field when type changes
-    if (event.target.value !== "Demand") {
-      setReportExtractionDate("");
-    }
+    // Always clear date when type changes
+    setReportExtractionDate("");
   };
 
   const handleUpload = async (file) => {
@@ -60,8 +58,11 @@ function ExcelImport() {
       selectedType === "Demand" ||
       selectedType === "Lateral Hiring"
     ) {
-      // For Demand, ensure reportExtractionDate is provided
-      if (selectedType === "Demand" && !reportExtractionDate) {
+      // For Demand and PDP, ensure reportExtractionDate is provided
+      if (
+        (selectedType === "Demand" || selectedType === "PDP") &&
+        !reportExtractionDate
+      ) {
         setError("Please select Report Extraction Date before uploading.");
         return;
       }
@@ -72,7 +73,7 @@ function ExcelImport() {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        if (selectedType === "Demand") {
+        if (selectedType === "Demand" || selectedType === "PDP") {
           formData.append("report_extraction_date", reportExtractionDate);
         }
 
@@ -261,18 +262,17 @@ function ExcelImport() {
             </RadioGroup>
           </FormControl>
 
-          {selectedType === "Demand" && (
-            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-              <TextField
-                label="Report Extraction Date"
-                type="date"
-                value={reportExtractionDate}
-                onChange={(e) => setReportExtractionDate(e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                sx={{ width: 260 }}
-              />
-            </Box>
-          )}
+          {/* Report Extraction Date - always visible */}
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+            <TextField
+              label="Report Extraction Date"
+              type="date"
+              value={reportExtractionDate}
+              onChange={(e) => setReportExtractionDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 260 }}
+            />
+          </Box>
 
           {error && (
             <Alert severity="error" sx={{ marginBottom: 2 }}>
